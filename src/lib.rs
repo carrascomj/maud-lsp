@@ -1,7 +1,7 @@
-mod looping;
 mod config;
-mod symbol_parser;
+mod looping;
 mod maud_data;
+mod symbol_parser;
 
-pub use looping::main_loop;
 pub use config::Config;
+pub use looping::main_loop;

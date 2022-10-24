@@ -78,7 +78,10 @@ impl KineticModelState {
         if let Some(met) = some_met {
             format!(
                 "metabolite = {}\nname = {}\ncomparment = {}\nbalanced ={}",
-                met.metabolite.get_ref(), met.name, met.compartment, met.balanced
+                met.metabolite.get_ref(),
+                met.name,
+                met.compartment,
+                met.balanced
             )
         } else {
             String::from("")
