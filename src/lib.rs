@@ -1,6 +1,6 @@
 mod looping;
 mod config;
-mod symbol_trait;
+mod symbol_parser;
 mod maud_data;
 
 pub use looping::main_loop;

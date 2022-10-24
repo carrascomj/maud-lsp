@@ -11,13 +11,12 @@ use lsp_types::{
 };
 
 #[test]
-fn gotodefinition_of_metabolites() {
+fn goestodef_of_metabolites() {
     let server =
         Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
             .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
-    println!("built");
 
     let res = server.send_request::<GotoDefinition>(GotoDefinitionParams {
         text_document_position_params: TextDocumentPositionParams::new(
@@ -31,13 +30,32 @@ fn gotodefinition_of_metabolites() {
 }
 
 #[test]
-fn hover_of_metabolites() {
+fn goestodef_of_metabolite_reactant() {
     let server =
         Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
             .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
-    println!("built");
+
+    let res = server.send_request::<GotoDefinition>(GotoDefinitionParams {
+        text_document_position_params: TextDocumentPositionParams::new(
+            server.doc_id("ecoli_kinetic_model.toml"),
+            Position::new(39, 18),
+        ),
+        work_done_progress_params: WorkDoneProgressParams::default(),
+        partial_result_params: PartialResultParams::default(),
+    });
+    eprintln!("{:?}", res.to_string());
+    assert!(res.to_string().contains("\"line\":3"));
+}
+
+#[test]
+fn hovers_metabolites() {
+    let server =
+        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
+            .server();
+    // waiting a bit for the server to initialize
+    std::thread::sleep(std::time::Duration::from_secs(1));
 
     let res = server.send_request::<HoverRequest>(HoverParams {
         text_document_position_params: TextDocumentPositionParams::new(
@@ -47,4 +65,21 @@ fn hover_of_metabolites() {
         work_done_progress_params: WorkDoneProgressParams::default(),
     });
     assert!(res.to_string().contains("f6p"));
+}
+
+#[test]
+fn hovers_metabolite_reactant() {
+    let server =
+        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
+            .server();
+    // waiting a bit for the server to initialize
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    let res = server.send_request::<HoverRequest>(HoverParams {
+        text_document_position_params: TextDocumentPositionParams::new(
+            server.doc_id("ecoli_kinetic_model.toml"),
+            Position::new(24, 19),
+        ),
+        work_done_progress_params: WorkDoneProgressParams::default(),
+    });
+    assert!(res.to_string().contains("g6p"));
 }

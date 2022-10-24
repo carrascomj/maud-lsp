@@ -54,9 +54,10 @@ impl KineticModelState {
     }
 
     /// Return the absolute spanned value of the symbol in the data model.
-    /// TODO: return the actual symbol to render useful information
+    /// TODO: return the actual symbol to make it more useful
     pub fn find_symbol<'a>(&'a self, symbol: &str) -> &'a Spanned<&'a str> {
-        let met = self.borrow_kinetic_model()
+        let met = self
+            .borrow_kinetic_model()
             .metabolite_in_compartments
             .iter()
             // TODO: handle this unwrap
@@ -65,10 +66,29 @@ impl KineticModelState {
         &met.metabolite
     }
 
+    /// Render a symbol str.
+    pub fn find_rendered_symbol<'a>(&'a self, symbol: &str) -> String {
+        let met_metabolite = self.find_symbol(symbol);
+        // TODO: this is stupid
+        let some_met = self
+            .borrow_kinetic_model()
+            .metabolite_in_compartments
+            .iter()
+            .find(|MetaboliteInCompartment { metabolite, .. }| metabolite == met_metabolite);
+        if let Some(met) = some_met {
+            format!(
+                "metabolite = {}\nname = {}\ncomparment = {}\nbalanced ={}",
+                met.metabolite.get_ref(), met.name, met.compartment, met.balanced
+            )
+        } else {
+            String::from("")
+        }
+    }
+
     /// Find the line where a symbol is defined (for GotoDefinition).
     pub fn find_symbol_line(&self, symbol: &str) -> usize {
         let met_metabolite = self.find_symbol(symbol);
-        span_to_line_number(self.borrow_file_str(), &met_metabolite)
+        span_to_line_number(self.borrow_file_str(), met_metabolite)
     }
 }
 

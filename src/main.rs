@@ -50,7 +50,7 @@ use lsp_server::Connection;
 pub mod config;
 mod looping;
 mod maud_data;
-mod symbol_trait;
+mod symbol_parser;
 
 use config::Config;
 pub use looping::main_loop;
