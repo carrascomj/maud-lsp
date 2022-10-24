@@ -51,6 +51,26 @@ fn goestodef_of_metabolite_reactant() {
 }
 
 #[test]
+fn goestodef_of_metabolites_in_csv() {
+    let server =
+        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
+            .server();
+    // waiting a bit for the server to initialize
+    std::thread::sleep(std::time::Duration::from_secs(1));
+
+    let res = server.send_request::<GotoDefinition>(GotoDefinitionParams {
+        text_document_position_params: TextDocumentPositionParams::new(
+            server.doc_id("priors.csv"),
+            Position::new(8, 32),
+        ),
+        work_done_progress_params: WorkDoneProgressParams::default(),
+        partial_result_params: PartialResultParams::default(),
+    });
+    // lines are 0-indexed!
+    assert!(res.to_string().contains('2'));
+}
+
+#[test]
 fn hovers_metabolites() {
     let server =
         Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
