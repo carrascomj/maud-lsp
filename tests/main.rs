@@ -26,7 +26,8 @@ fn goestodef_of_metabolites() {
         work_done_progress_params: WorkDoneProgressParams::default(),
         partial_result_params: PartialResultParams::default(),
     });
-    assert!(res.to_string().contains('3'));
+    // lines are 0-indexed!
+    assert!(res.to_string().contains('2'));
 }
 
 #[test]
@@ -45,8 +46,8 @@ fn goestodef_of_metabolite_reactant() {
         work_done_progress_params: WorkDoneProgressParams::default(),
         partial_result_params: PartialResultParams::default(),
     });
-    eprintln!("{:?}", res.to_string());
-    assert!(res.to_string().contains("\"line\":3"));
+    // lines are 0-indexed!
+    assert!(res.to_string().contains("\"line\":2"));
 }
 
 #[test]

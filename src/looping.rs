@@ -49,7 +49,7 @@ pub fn main_loop(
                         )?;
                         let symbol = extract_symbol(&line_str, col as usize);
                         // handle this unwrap
-                        let result_line = kinetic_state.find_symbol_line(symbol.unwrap());
+                        let result_line = kinetic_state.find_symbol_line(symbol.unwrap()) - 1;
                         // the way of finding the symbol on the cursor changes between
                         // maud CSVs and kinetic models.
                         // TODO(carrascomj): we are only handling the kinetic model
