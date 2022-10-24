@@ -13,21 +13,13 @@ use serde::Serialize;
 use serde_json::{to_string_pretty, Value};
 
 pub(crate) struct Project<P> {
-    kinetic_model: String,
     kinetic_model_path: P,
 }
 
 impl Project<PathBuf> {
     // TODO: this will we have to be a directory at some point
     pub(crate) fn from_kinetic_model(kinetic_model_path: PathBuf) -> Project<PathBuf> {
-        let kinetic_model = match std::fs::read_to_string(kinetic_model_path.clone()) {
-            Ok(s) => s,
-            Err(err) => panic!("Not found {:?} with err {:?}", kinetic_model_path, err),
-        };
-        Project {
-            kinetic_model,
-            kinetic_model_path,
-        }
+        Project { kinetic_model_path }
     }
 
     pub(crate) fn server(self) -> Server {
@@ -47,10 +39,7 @@ pub(crate) struct Server {
 impl Server {
     fn new(kinetic_model_path: PathBuf) -> Server {
         let (connection, client) = Connection::memory();
-        let root_dir = kinetic_model_path
-            .parent()
-            .map(|s| s.to_path_buf())
-            .unwrap();
+        let root_dir = kinetic_model_path;
         let config = Config {
             caps: <lsp_types::ClientCapabilities as Default>::default(),
             root_dir: root_dir.clone(),
@@ -72,7 +61,7 @@ impl Server {
     }
 
     pub(crate) fn doc_id(&self, rel_path: &str) -> TextDocumentIdentifier {
-        let uri = match Url::from_file_path(self.root_dir.join(rel_path)) {
+        let uri = match Url::from_file_path(&self.root_dir.join(rel_path)) {
             Ok(uri) => uri,
             Err(err) => panic!(
                 "Doc id failed with root {:?} and error {:?}",

@@ -44,12 +44,13 @@
 use std::error::Error;
 
 use lsp_types::OneOf;
-use lsp_types::{InitializeParams, ServerCapabilities};
+use lsp_types::{HoverProviderCapability, InitializeParams, ServerCapabilities};
 
 use lsp_server::Connection;
 pub mod config;
 mod looping;
 mod maud_data;
+mod symbol_trait;
 
 use config::Config;
 pub use looping::main_loop;
@@ -65,6 +66,7 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
     let server_capabilities = serde_json::to_value(&ServerCapabilities {
         definition_provider: Some(OneOf::Left(true)),
+        hover_provider: Some(HoverProviderCapability::Simple(true)),
         ..Default::default()
     })
     .unwrap();

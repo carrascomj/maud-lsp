@@ -1,16 +1,32 @@
 use std::error::Error;
+use std::fs::{read_to_string, File};
+use std::io;
+use std::io::BufRead;
+use std::path::Path;
 
-use lsp_types::{request::GotoDefinition, GotoDefinitionResponse};
+use lsp_types::{
+    request::{GotoDefinition, HoverRequest}, GotoDefinitionResponse, Hover, HoverContents,
+    LanguageString, Location, MarkedString, Position, Range, Url,
+};
 
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
+use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response, ResponseError};
 
 use crate::config::Config;
+use crate::maud_data::{KineticModel, KineticModelState, MaudConfig};
+use crate::symbol_trait::SymbolExtract;
 
 pub fn main_loop(
     connection: Connection,
     config: Config,
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
     eprintln!("starting example main loop");
+    // TODO: handle this
+    let maud_config: MaudConfig =
+        toml::from_str(&read_to_string(config.root_dir.join("config.toml"))?)?;
+    println!("{:?}", config.root_dir.join(&maud_config.kinetic_model));
+    let kinetic_state = KineticModelState::from_path(config.root_dir.join(&maud_config.kinetic_model));
+    let kinetic_model_uri =
+        Url::from_file_path(config.root_dir.join(maud_config.kinetic_model)).unwrap();
     for msg in &connection.receiver {
         eprintln!("got msg: {:?}", msg);
         match msg {
@@ -19,10 +35,41 @@ pub fn main_loop(
                     return Ok(());
                 }
                 eprintln!("got request: {:?}", req);
-                match cast::<GotoDefinition>(req) {
+                let passed_req = match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
                         eprintln!("got gotoDefinition request #{}: {:?}", id, params);
-                        let result = Some(GotoDefinitionResponse::Array(Vec::new()));
+                        let (row, col) = (
+                            params.text_document_position_params.position.line,
+                            params.text_document_position_params.position.character,
+                        );
+                        // TODO: check the uri is a valid absolute path
+                        let line_str = read_line(
+                            params
+                                .text_document_position_params
+                                .text_document
+                                .uri
+                                .path(),
+                            row,
+                        )?;
+                        let symbol = KineticModel::extract_symbol(&line_str, col as usize);
+                        // handle this unwrap
+                        let result_line = kinetic_state.find_symbol_line(symbol.unwrap());
+                        // the way of finding the symbol on the cursor changes between
+                        // maud CSVs and kinetic models.
+                        // TODO(carrascomj): we are only handling the kinetic model
+                        let result = Some(GotoDefinitionResponse::Scalar(Location {
+                            uri: kinetic_model_uri.clone(),
+                            range: Range {
+                                start: Position {
+                                    line: result_line as u32,
+                                    character: 0,
+                                },
+                                end: Position {
+                                    line: result_line as u32,
+                                    character: 0,
+                                },
+                            },
+                        }));
                         let result = serde_json::to_value(&result).unwrap();
                         let resp = Response {
                             id,
@@ -35,7 +82,60 @@ pub fn main_loop(
                     Err(err @ ExtractError::JsonError { .. }) => panic!("{:?}", err),
                     Err(ExtractError::MethodMismatch(req)) => req,
                 };
-                // ...
+                let req_id = match cast::<HoverRequest>(passed_req) {
+                    Ok((id, params)) => {
+                        eprintln!("got Hover request #{}: {:?}", id, params);
+                        let (row, col) = (
+                            params.text_document_position_params.position.line,
+                            params.text_document_position_params.position.character,
+                        );
+                        // TODO: check the uri is a valid absolute path
+                        let line_str = read_line(
+                            params
+                                .text_document_position_params
+                                .text_document
+                                .uri
+                                .path(),
+                            row,
+                        )?;
+                        let symbol = KineticModel::extract_symbol(&line_str, col as usize);
+                        // handle this unwrap
+                        let result_symbol = kinetic_state.find_symbol(symbol.unwrap());
+                        // the way of finding the symbol on the cursor changes between
+                        // maud CSVs and kinetic models.
+                        let result = Some(Hover {
+                            contents: HoverContents::Scalar(MarkedString::LanguageString(
+                                LanguageString {
+                                    language: "toml".to_string(),
+                                    value: result_symbol.get_ref().to_string(),
+                                },
+                            )),
+                            range: None,
+                        });
+                        // TODO: handle this unwrap
+                        let result = serde_json::to_value(&result)?;
+                        let resp = Response {
+                            id,
+                            result: Some(result),
+                            error: None,
+                        };
+                        connection.sender.send(Message::Response(resp))?;
+                        continue;
+                    }
+                    Err(err @ ExtractError::JsonError { .. }) => panic!("{:?}", err),
+                    Err(ExtractError::MethodMismatch(req)) => req.id,
+                };
+                // this should not really happen since we declare our capabilties beforehand
+                let no_idea_resp = Response {
+                    id: req_id,
+                    result: None,
+                    error: Some(ResponseError {
+                        code: 500,
+                        message: "Method not implemented".to_string(),
+                        data: None,
+                    }),
+                };
+                connection.sender.send(Message::Response(no_idea_resp))?;
             }
             Message::Response(resp) => {
                 eprintln!("got response: {:?}", resp);
@@ -54,4 +154,13 @@ where
     R::Params: serde::de::DeserializeOwned,
 {
     req.extract(R::METHOD)
+}
+
+fn read_line<P: AsRef<Path>>(file_path: P, line: u32) -> io::Result<String> {
+    let input = File::open(file_path)?;
+    let buffered = io::BufReader::new(input);
+    buffered
+        .lines()
+        .nth(line as usize)
+        .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?
 }
