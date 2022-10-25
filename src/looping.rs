@@ -13,7 +13,8 @@ use lsp_types::{
 use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response, ResponseError};
 
 use crate::config::Config;
-use crate::maud_data::{KineticModelState, MaudConfig};
+use crate::maud_data::MaudConfig;
+use crate::state::KineticModelState;
 use crate::symbol_parser::extract_symbol;
 
 pub fn main_loop(
