@@ -2,16 +2,39 @@
 
 A Language Server for [Maud](https://github.com/biosustain/Maud).
 
-Supports `Hover` and `GotoDefinition`.
+Supports `Hover` and `GotoDefinition`, of **Metabolites**, **Reactions** and **Enzymes**.
 
 ![Maud screenshot](assets/maud_screen.png "Maud screenshot") 
 
-## TODO
+## Installation
 
-- [x] Handle `MetaboliteInComparment`.
-- [x] Handle `Reaction`.
-- [x] Handle `Enzyme`.
-- [x] Fail gracefully when symbol was not found.
+There are x84 binaries available for Linux, Mac and Windows at the
+[release page](https://github.com/carrascomj/maud-lsp/releases/latest):
+
+1. Download one of the compressed files (the one for your OS).
+2. Decompress it. For instance, if you are running Linux:
+```bash
+tar xf maud-lsp-x86_64-unknown-linux-gnu.tar.gz 
+```
+3. Put it in your path. For instance:
+```bash
+# if $HOME/.local/bin is in your $PATH
+mv maud-lsp ~/.local/bin
+```
+
+### Neovim setup
+
+Copy-paste [`maud-ls.lua`](./assets/maud-ls.lua) in your `init.lua` config.
+
+### Building from source
+
+Install [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and run
+
+```bash
+git clone https://github.com/carrascomj/maud-lsp.git
+cd maud-lsp
+cargo install --path .
+```
 
 ## Acknowledgments
 
