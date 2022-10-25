@@ -36,15 +36,25 @@ impl KineticModelState {
             // TODO: handle this unwrap
             .find(|&met| met.identifier() == symbol);
         if some_met.is_some() {
-            some_met.map(Entity::Met)
-        } else {
-            self.borrow_kinetic_model()
-                .reactions
-                .iter()
-                // TODO: handle this unwrap
-                .find(|&reac| reac.identifier() == symbol)
-                .map(Entity::Reac)
+            return some_met.map(Entity::Met);
         }
+
+        let some_reac = self
+            .borrow_kinetic_model()
+            .reactions
+            .iter()
+            // TODO: handle this unwrap
+            .find(|&reac| reac.identifier() == symbol)
+            .map(Entity::Reac);
+        if some_reac.is_some() {
+            return some_reac;
+        }
+        self.borrow_kinetic_model()
+            .enzymes
+            .iter()
+            // TODO: handle this unwrap
+            .find(|&enz| enz.identifier() == symbol)
+            .map(Entity::Enz)
     }
 
     /// Render a symbol str.

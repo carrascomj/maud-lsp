@@ -54,19 +54,34 @@ enzyme = [{id = "TPI", name = "Triose-phosphate isomerase"}]
 stoichiometry = {dhap_c = -1, g3p_c = 1}
 mechanism = "reversible_michaelis_menten"
 
-# [[reaction]]
-# id = "GAPD"
-# name = "Glyceraldehyde-3-phosphate dehydrogenase"
-# enzyme = [{id = "GAPD", name = "Glyceraldehyde-3-phosphate dehydrogenase"}]
-# stoichiometry = {13dpg_c = 1, g3p_c = -1, nad_c = -1, nadh_c = 1, pi_c = -1}
+[[enzyme]]
+id = "E1"
+name = "Magic enzyme catalyzing PGI, PFK and FBP."
+subunits = 1
 
-# [[reaction]]
-# id = "PGK"
-# name = "Phosphoglycerate kinase"
-# enzyme = [{id = "PGK", name = "Phosphoglycerate kinase"}]
-# stoichiometry = {13dpg_c = -1, 3pg_c = 1, adp_c = -1, atp_c = 1}
+[[enzyme]]
+id = "E2"
+name = "Magic enzyme catalyzing FBA and TPI."
+subunits = 2
 
-[[drain]]
+[[enzyme_reaction]]
+enzyme_id = "E1"
+reaction_id = "PGI"
+[[enzyme_reaction]]
+enzyme_id = "E1"
+reaction_id = "PFK"
+[[enzyme_reaction]]
+enzyme_id = "E1"
+reaction_id = "FBP"
+[[enzyme_reaction]]
+enzyme_id = "E2"
+reaction_id = "FBA"
+[[enzyme_reaction]]
+enzyme_id = "E2"
+reaction_id = "TPI"
+
+[[reaction]]
 id = "g3pdrain"
 name = "g3pdrain"
 stoichiometry = { g3p_c = -1 }
+mechanism = "drain"

@@ -44,6 +44,15 @@ pub struct Reaction<'a> {
     pub mechanism: ReactionMechanism,
 }
 
+/// Enzyme that catalyzes 1 or more reactions.
+#[derive(Deserialize)]
+pub struct Enzyme<'a> {
+    /// identifier, cannot contain underscores
+    pub id: Spanned<&'a str>,
+    pub name: &'a str,
+    pub subunits: u16,
+}
+
 /// Compartments.
 #[derive(Deserialize)]
 pub struct Compartment<'a> {
@@ -59,6 +68,8 @@ pub(crate) struct KineticModel<'a> {
     pub metabolites: Vec<Metabolite<'a>>,
     #[serde(rename = "reaction", borrow)]
     pub reactions: Vec<Reaction<'a>>,
+    #[serde(rename = "enzyme", borrow)]
+    pub enzymes: Vec<Enzyme<'a>>,
     #[serde(rename = "compartment", borrow)]
     pub compartments: Vec<Compartment<'a>>,
 }
@@ -83,7 +94,14 @@ mod tests {
     fn all_reactions_are_deserialized() {
         let kinetic_model: KineticModel =
             toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
-        assert_eq!(kinetic_model.reactions.len(), 5)
+        assert_eq!(kinetic_model.reactions.len(), 6)
+    }
+
+    #[test]
+    fn all_enzymes_are_deserialized() {
+        let kinetic_model: KineticModel =
+            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
+        assert_eq!(kinetic_model.enzymes.len(), 2)
     }
 
     #[test]
