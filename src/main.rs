@@ -10,6 +10,7 @@ use lsp_server::Connection;
 pub mod config;
 mod looping;
 mod maud_data;
+mod metabolic;
 mod symbol_parser;
 mod state;
 
