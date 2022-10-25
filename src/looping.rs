@@ -28,123 +28,170 @@ pub fn main_loop(
     let kinetic_model_uri =
         Url::from_file_path(config.root_dir.join(maud_config.kinetic_model_file)).unwrap();
     for msg in &connection.receiver {
-        match msg {
-            Message::Request(req) => {
-                if connection.handle_shutdown(&req)? {
-                    return Ok(());
-                }
-                let passed_req = match cast::<GotoDefinition>(req) {
-                    Ok((id, params)) => {
-                        let (row, col) = (
-                            params.text_document_position_params.position.line,
-                            params.text_document_position_params.position.character,
-                        );
-                        // TOD check the uri is a valid absolute path
-                        let line_str = read_line(
-                            params
-                                .text_document_position_params
-                                .text_document
-                                .uri
-                                .path(),
-                            row,
-                        )?;
-                        let symbol = extract_symbol(&line_str, col as usize);
-                        // handle this unwrap
-                        let result_line = kinetic_state
-                            .find_symbol_line(symbol.unwrap())
-                            .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?
-                            - 1;
-                        // the way of finding the symbol on the cursor changes between
-                        // maud CSVs and kinetic models.
-                        // TODO(carrascomj): we are only handling the kinetic model
-                        let result = Some(GotoDefinitionResponse::Scalar(Location {
-                            uri: kinetic_model_uri.clone(),
-                            range: Range {
-                                start: Position {
-                                    line: result_line as u32,
-                                    character: 0,
-                                },
-                                end: Position {
-                                    line: result_line as u32,
-                                    character: 0,
-                                },
-                            },
-                        }));
-                        let result = serde_json::to_value(&result).unwrap();
-                        let resp = Response {
-                            id,
-                            result: Some(result),
-                            error: None,
-                        };
-                        connection.sender.send(Message::Response(resp))?;
-                        continue;
-                    }
-                    Err(err @ ExtractError::JsonError { .. }) => panic!("{:?}", err),
-                    Err(ExtractError::MethodMismatch(req)) => req,
-                };
-                let req_id = match cast::<HoverRequest>(passed_req) {
-                    Ok((id, params)) => {
-                        let (row, col) = (
-                            params.text_document_position_params.position.line,
-                            params.text_document_position_params.position.character,
-                        );
-                        // TODO: check the uri is a valid absolute path
-                        let line_str = read_line(
-                            params
-                                .text_document_position_params
-                                .text_document
-                                .uri
-                                .path(),
-                            row,
-                        )?;
-                        let symbol = extract_symbol(&line_str, col as usize);
-                        // handle this unwrap
-                        let result_symbol = kinetic_state.find_rendered_symbol(symbol.unwrap());
-                        // the way of finding the symbol on the cursor changes between
-                        // maud CSVs and kinetic models.
-                        let result = Some(Hover {
-                            contents: HoverContents::Scalar(MarkedString::LanguageString(
-                                LanguageString {
-                                    language: "toml".to_string(),
-                                    value: result_symbol,
-                                },
-                            )),
-                            range: None,
-                        });
-                        // TODO: handle this unwrap
-                        let result = serde_json::to_value(&result)?;
-                        let resp = Response {
-                            id,
-                            result: Some(result),
-                            error: None,
-                        };
-                        connection.sender.send(Message::Response(resp))?;
-                        continue;
-                    }
-                    Err(err @ ExtractError::JsonError { .. }) => panic!("{:?}", err),
-                    Err(ExtractError::MethodMismatch(req)) => req.id,
-                };
-                // this should not really happen since we declare our capabilties beforehand
+        match match_message(msg, &connection, &kinetic_state, &kinetic_model_uri) {
+            Ok(Some(OkMsg::OkNotFound { id, msg })) => {
                 let no_idea_resp = Response {
-                    id: req_id,
+                    id,
                     result: None,
                     error: Some(ResponseError {
                         code: 500,
-                        message: "Method not implemented".to_string(),
+                        message: msg,
                         data: None,
                     }),
                 };
                 connection.sender.send(Message::Response(no_idea_resp))?;
             }
-            Message::Response(resp) => {
-                eprintln!("got response: {:?}", resp);
-            }
-            Message::Notification(not) => {
-                eprintln!("got notification: {:?}", not);
-            }
+            Ok(Some(OkMsg::Shutdown)) => return Ok(()),
+            Err(e) => panic!("{:?}", e),
+            _ => (),
         }
     }
     Ok(())
+}
+
+enum OkMsg {
+    /// Something was not found but the server does not have to crash.
+    OkNotFound { id: RequestId, msg: String },
+    /// Received shutdown, return Ok
+    Shutdown,
+}
+
+fn match_message(
+    msg: Message,
+    connection: &Connection,
+    kinetic_state: &KineticModelState,
+    kinetic_model_uri: &Url,
+) -> Result<Option<OkMsg>, Box<dyn Error + Sync + Send>> {
+    match msg {
+        Message::Request(req) => {
+            if connection.handle_shutdown(&req)? {
+                return Ok(Some(OkMsg::Shutdown));
+            }
+            let passed_req = match cast::<GotoDefinition>(req) {
+                Ok((id, params)) => {
+                    let (row, col) = (
+                        params.text_document_position_params.position.line,
+                        params.text_document_position_params.position.character,
+                    );
+                    // TOD check the uri is a valid absolute path
+                    let line_str = read_line(
+                        params
+                            .text_document_position_params
+                            .text_document
+                            .uri
+                            .path(),
+                        row,
+                    )?;
+                    let symbol = match extract_symbol(&line_str, col as usize) {
+                        Some(s) => s,
+                        None => {
+                            return Ok(Some(OkMsg::OkNotFound {
+                                id,
+                                msg: format!("Valid symbol at {},{} Not Found", line_str, col),
+                            }))
+                        }
+                    };
+                    let result_line = match kinetic_state.find_symbol_line(symbol) {
+                        Some(line) => line - 1,
+                        None => {
+                            return Ok(Some(OkMsg::OkNotFound {
+                                id,
+                                msg: format!("Symbol {} Not Found in Kinetic Model", symbol),
+                            }))
+                        }
+                    };
+                    // the way of finding the symbol on the cursor changes between
+                    // maud CSVs and kinetic models.
+                    // TODO(carrascomj): we are only handling the kinetic model
+                    let result = Some(GotoDefinitionResponse::Scalar(Location {
+                        uri: kinetic_model_uri.clone(),
+                        range: Range {
+                            start: Position {
+                                line: result_line as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: result_line as u32,
+                                character: 0,
+                            },
+                        },
+                    }));
+                    let result = serde_json::to_value(&result).unwrap();
+                    let resp = Response {
+                        id,
+                        result: Some(result),
+                        error: None,
+                    };
+                    connection.sender.send(Message::Response(resp))?;
+                    return Ok(None);
+                }
+                Err(err @ ExtractError::JsonError { .. }) => panic!("{:?}", err),
+                Err(ExtractError::MethodMismatch(req)) => req,
+            };
+            let req_id = match cast::<HoverRequest>(passed_req) {
+                Ok((id, params)) => {
+                    let (row, col) = (
+                        params.text_document_position_params.position.line,
+                        params.text_document_position_params.position.character,
+                    );
+                    // TODO: check the uri is a valid absolute path
+                    let line_str = read_line(
+                        params
+                            .text_document_position_params
+                            .text_document
+                            .uri
+                            .path(),
+                        row,
+                    )?;
+                    let symbol = match extract_symbol(&line_str, col as usize) {
+                        Some(s) => s,
+                        None => {
+                            return Ok(Some(OkMsg::OkNotFound {
+                                id,
+                                msg: format!("Valid symbol at {},{} Not Found", line_str, col),
+                            }))
+                        }
+                    };
+                    let result_symbol = kinetic_state.find_rendered_symbol(symbol);
+                    // the way of finding the symbol on the cursor changes between
+                    // maud CSVs and kinetic models.
+                    let result = Some(Hover {
+                        contents: HoverContents::Scalar(MarkedString::LanguageString(
+                            LanguageString {
+                                language: "toml".to_string(),
+                                value: result_symbol,
+                            },
+                        )),
+                        range: None,
+                    });
+                    // TODO: handle this unwrap
+                    let result = serde_json::to_value(&result)?;
+                    let resp = Response {
+                        id,
+                        result: Some(result),
+                        error: None,
+                    };
+                    connection.sender.send(Message::Response(resp))?;
+                    return Ok(None);
+                }
+                Err(err @ ExtractError::JsonError { .. }) => panic!("{:?}", err),
+                Err(ExtractError::MethodMismatch(req)) => req.id,
+            };
+            // this should not really happen since we declare our capabilties beforehand
+            Ok(Some(OkMsg::OkNotFound {
+                id: req_id,
+                msg: "Method not implemented".to_string(),
+            }))
+        }
+        Message::Response(resp) => {
+            eprintln!("got response: {:?}", resp);
+            Ok(None)
+        }
+        Message::Notification(not) => {
+            eprintln!("got notification: {:?}", not);
+            Ok(None)
+        }
+    }
 }
 
 fn cast<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>

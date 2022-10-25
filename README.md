@@ -11,7 +11,7 @@ Supports `Hover` and `GotoDefinition`.
 - [x] Handle `MetaboliteInComparment`.
 - [x] Handle `Reaction`.
 - [x] Handle `Enzyme`.
-- [ ] Fail gracefully when symbol was not found.
+- [x] Fail gracefully when symbol was not found.
 
 ## Acknowledgments
 
