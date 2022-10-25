@@ -1,4 +1,4 @@
-use crate::maud_data::{Enzyme, Metabolite, Reaction, ReactionMechanism};
+use crate::maud_data::{Enzyme, EnzymeReaction, Metabolite, Reaction, ReactionMechanism};
 use core::fmt::Display;
 use toml::Spanned;
 
@@ -60,28 +60,47 @@ impl Metabolic for Reaction<'_> {
     }
 }
 
-impl Display for Enzyme<'_> {
+pub struct MetabolicEnzyme<'a> {
+    pub enzyme: &'a Enzyme<'a>,
+    pub reactions: Vec<&'a str>,
+}
+
+impl<'a> MetabolicEnzyme<'a> {
+    pub fn from_enzyme(enzyme: &'a Enzyme<'a>, enzyme_reactions: &[EnzymeReaction<'a>]) -> Self {
+        Self {
+            enzyme,
+            reactions: enzyme_reactions
+                .iter()
+                .filter(|enz_reac| &enz_reac.enzyme_id == enzyme.id.get_ref())
+                .map(|enz_reac| enz_reac.reaction_id)
+                .collect(),
+        }
+    }
+}
+
+impl Display for MetabolicEnzyme<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "enzyme = {}\nname = {}\nsubunits = {}",
-            self.id.get_ref(),
-            self.name,
-            self.subunits,
+            "enzyme = {}\nname = {}\nsubunits = {}\nreactions = {:?}",
+            self.enzyme.id.get_ref(),
+            self.enzyme.name,
+            self.enzyme.subunits,
+            self.reactions,
         )
     }
 }
 
-impl Metabolic for Enzyme<'_> {
+impl Metabolic for MetabolicEnzyme<'_> {
     fn span(&self) -> &Spanned<&str> {
-        &self.id
+        &self.enzyme.id
     }
 }
 
 pub enum Entity<'a> {
     Met(&'a Metabolite<'a>),
     Reac(&'a Reaction<'a>),
-    Enz(&'a Enzyme<'a>),
+    Enz(MetabolicEnzyme<'a>),
 }
 
 impl Display for Entity<'_> {

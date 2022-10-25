@@ -1,5 +1,5 @@
 use crate::maud_data::KineticModel;
-use crate::metabolic::{Entity, Metabolic};
+use crate::metabolic::{Entity, Metabolic, MetabolicEnzyme};
 use ouroboros::self_referencing;
 use std::io::Read;
 use toml::Spanned;
@@ -53,8 +53,13 @@ impl KineticModelState {
             .enzymes
             .iter()
             // TODO: handle this unwrap
-            .find(|&enz| enz.identifier() == symbol)
-            .map(Entity::Enz)
+            .find(|enz| enz.id.get_ref() == &symbol)
+            .map(|enz| {
+                Entity::Enz(MetabolicEnzyme::from_enzyme(
+                    enz,
+                    self.borrow_kinetic_model().enzyme_reaction.as_slice(),
+                ))
+            })
     }
 
     /// Render a symbol str.

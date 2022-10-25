@@ -10,7 +10,7 @@ Supports `Hover` and `GotoDefinition`.
 
 - [x] Handle `MetaboliteInComparment`.
 - [x] Handle `Reaction`.
-- [ ] Handle `Enzyme`.
+- [x] Handle `Enzyme`.
 - [ ] Fail gracefully when symbol was not found.
 
 ## Acknowledgments
