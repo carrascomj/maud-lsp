@@ -61,14 +61,6 @@ pub struct EnzymeReaction<'a> {
     pub reaction_id: &'a str,
 }
 
-/// Compartments.
-#[derive(Deserialize)]
-pub struct Compartment<'a> {
-    id: Spanned<&'a str>,
-    name: &'a str,
-    volume: f32,
-}
-
 /// Contains the metabolic model structural data.
 #[derive(Deserialize)]
 pub(crate) struct KineticModel<'a> {
@@ -80,8 +72,6 @@ pub(crate) struct KineticModel<'a> {
     pub enzymes: Vec<Enzyme<'a>>,
     #[serde(borrow)]
     pub enzyme_reaction: Vec<EnzymeReaction<'a>>,
-    #[serde(rename = "compartment", borrow)]
-    pub compartments: Vec<Compartment<'a>>,
 }
 
 #[derive(Deserialize)]
@@ -91,7 +81,7 @@ pub struct MaudConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{Compartment, KineticModel};
+    use super::KineticModel;
 
     #[test]
     fn all_comp_metabolites_are_deserialized() {
@@ -112,15 +102,5 @@ mod tests {
         let kinetic_model: KineticModel =
             toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
         assert_eq!(kinetic_model.enzymes.len(), 2)
-    }
-
-    #[test]
-    fn cytosol_is_found_in_examples() {
-        let kinetic_model: KineticModel =
-            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
-        assert!(kinetic_model
-            .compartments
-            .iter()
-            .any(|Compartment { id, .. }| *id.get_ref() == "c"))
     }
 }

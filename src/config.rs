@@ -10,11 +10,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_init(init_params: InitializeParams) -> std::io::Result<Self> {
-        let root_path = match init_params
-            .root_uri
-            .and_then(|it| it.to_file_path().ok())
-            .and_then(|it| PathBuf::try_from(it).ok())
-        {
+        let root_path = match init_params.root_uri.and_then(|it| it.to_file_path().ok()) {
             Some(it) => it,
             None => std::env::current_dir()?,
         };
