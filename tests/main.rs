@@ -61,7 +61,7 @@ fn goestodef_of_metabolites_in_csv() {
     let res = server.send_request::<GotoDefinition>(GotoDefinitionParams {
         text_document_position_params: TextDocumentPositionParams::new(
             server.doc_id("priors.csv"),
-            Position::new(8, 32),
+            Position::new(8, 5),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
         partial_result_params: PartialResultParams::default(),
