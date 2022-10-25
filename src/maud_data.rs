@@ -1,5 +1,5 @@
 /// Maud data model of the kinetic_model file.
-use serde:: Deserialize;
+use serde::Deserialize;
 use std::collections::HashMap;
 use toml::Spanned;
 
