@@ -21,7 +21,7 @@ fn goestodef_of_metabolites() {
     let res = server.send_request::<GotoDefinition>(GotoDefinitionParams {
         text_document_position_params: TextDocumentPositionParams::new(
             server.doc_id("ecoli_kinetic_model.toml"),
-            Position::new(2, 16),
+            Position::new(2, 8),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
         partial_result_params: PartialResultParams::default(),
@@ -81,7 +81,7 @@ fn hovers_metabolites() {
     let res = server.send_request::<HoverRequest>(HoverParams {
         text_document_position_params: TextDocumentPositionParams::new(
             server.doc_id("ecoli_kinetic_model.toml"),
-            Position::new(2, 16),
+            Position::new(2, 8),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
     });

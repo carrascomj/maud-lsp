@@ -1,4 +1,4 @@
-use crate::maud_data::{MetaboliteInCompartment, Reaction, ReactionMechanism};
+use crate::maud_data::{Metabolite, Reaction, ReactionMechanism};
 use core::fmt::Display;
 use toml::Spanned;
 
@@ -9,22 +9,21 @@ pub trait Metabolic: Display {
     }
 }
 
-impl Display for MetaboliteInCompartment<'_> {
+impl Display for Metabolite<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "metabolite = {}\nname = {}\ncompartment = {}\nbalanced = {}",
-            self.metabolite.get_ref(),
+            "metabolite = {}\nname = {}\ninchi_key = {}",
+            self.id.get_ref(),
             self.name,
-            self.compartment,
-            self.balanced
+            self.inchi_key,
         )
     }
 }
 
-impl Metabolic for MetaboliteInCompartment<'_> {
+impl Metabolic for Metabolite<'_> {
     fn span(&self) -> &Spanned<&str> {
-        &self.metabolite
+        &self.id
     }
 }
 
@@ -34,8 +33,8 @@ impl Display for ReactionMechanism {
             f,
             "{}",
             match self {
-                ReactionMechanism::ReversibleModularRateLaw => "reversible",
-                ReactionMechanism::IrreversibleModularRateLaw => "irreversible",
+                ReactionMechanism::ReversibleMichaelisMenten => "reversible",
+                ReactionMechanism::IrreversibleMichaelisMenten => "irreversible",
                 ReactionMechanism::Drain => "drain",
             }
         )
@@ -62,7 +61,7 @@ impl Metabolic for Reaction<'_> {
 }
 
 pub enum Entity<'a> {
-    Met(&'a MetaboliteInCompartment<'a>),
+    Met(&'a Metabolite<'a>),
     Reac(&'a Reaction<'a>),
 }
 

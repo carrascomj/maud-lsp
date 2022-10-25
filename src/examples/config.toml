@@ -3,7 +3,7 @@ description = """
     The biggest model of e coli central carbon metabolism that can conveniently
     be run on a laptop.
 """
-kinetic_model = "ecoli_kinetic_model.toml"
+kinetic_model_file = "ecoli_kinetic_model.toml"
 priors = "priors.csv"
 measurements = "experiments.csv"
 biological_config = "biological_config.toml"

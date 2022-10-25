@@ -31,7 +31,7 @@ impl KineticModelState {
     pub fn find_symbol<'a>(&'a self, symbol: &str) -> Option<Entity<'a>> {
         let some_met = self
             .borrow_kinetic_model()
-            .metabolite_in_compartments
+            .metabolites
             .iter()
             // TODO: handle this unwrap
             .find(|&met| met.identifier() == symbol);

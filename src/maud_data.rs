@@ -1,22 +1,21 @@
 /// Maud data model of the kinetic_model file.
-use serde::{de::DeserializeOwned, Deserialize, Deserializer};
-use std::collections::{BTreeMap, HashMap};
+use serde:: Deserialize;
+use std::collections::HashMap;
 use toml::Spanned;
 
 /// Metabolites in a compartment in Maud.
 #[derive(Deserialize)]
-pub struct MetaboliteInCompartment<'a> {
+pub struct Metabolite<'a> {
     /// identifier, cannot contain underscores
-    pub metabolite: Spanned<&'a str>,
+    pub id: Spanned<&'a str>,
     pub name: &'a str,
-    pub compartment: &'a str,
-    pub balanced: bool,
+    pub inchi_key: &'a str,
 }
 
 #[derive(Deserialize)]
 pub enum ReactionMechanism {
-    IrreversibleModularRateLaw,
-    ReversibleModularRateLaw,
+    IrreversibleMichaelisMenten,
+    ReversibleMichaelisMenten,
     Drain,
 }
 
@@ -27,8 +26,8 @@ where
     let mut deser_result: String = serde::Deserialize::deserialize(de)?;
     deser_result = deser_result.to_lowercase();
     match deser_result.as_str() {
-        "irreversible_modular_rate_law" => Ok(ReactionMechanism::IrreversibleModularRateLaw),
-        "reversible_modular_rate_law" => Ok(ReactionMechanism::ReversibleModularRateLaw),
+        "irreversible_michaelis_menten" => Ok(ReactionMechanism::IrreversibleMichaelisMenten),
+        "reversible_michaelis_menten" => Ok(ReactionMechanism::ReversibleMichaelisMenten),
         "drain" => Ok(ReactionMechanism::Drain),
         _ => Err(serde::de::Error::custom("Invalid reaction mechanism")),
     }
@@ -40,7 +39,7 @@ pub struct Reaction<'a> {
     /// identifier, cannot contain underscores
     pub id: Spanned<&'a str>,
     pub name: &'a str,
-    pub stoichiometry: HashMap<&'a str, i16>,
+    pub stoichiometry: HashMap<&'a str, f32>,
     #[serde(deserialize_with = "deserialize_reaction_mechanism")]
     pub mechanism: ReactionMechanism,
 }
@@ -56,8 +55,8 @@ pub struct Compartment<'a> {
 /// Contains the metabolic model structural data.
 #[derive(Deserialize)]
 pub(crate) struct KineticModel<'a> {
-    #[serde(rename = "metabolite-in-compartment", borrow)]
-    pub metabolite_in_compartments: Vec<MetaboliteInCompartment<'a>>,
+    #[serde(rename = "metabolite", borrow)]
+    pub metabolites: Vec<Metabolite<'a>>,
     #[serde(rename = "reaction", borrow)]
     pub reactions: Vec<Reaction<'a>>,
     #[serde(rename = "compartment", borrow)]
@@ -66,7 +65,7 @@ pub(crate) struct KineticModel<'a> {
 
 #[derive(Deserialize)]
 pub struct MaudConfig {
-    pub kinetic_model: String,
+    pub kinetic_model_file: String,
 }
 
 #[cfg(test)]
@@ -77,7 +76,7 @@ mod tests {
     fn all_comp_metabolites_are_deserialized() {
         let kinetic_model: KineticModel =
             toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
-        assert_eq!(kinetic_model.metabolite_in_compartments.len(), 8)
+        assert_eq!(kinetic_model.metabolites.len(), 8)
     }
 
     #[test]

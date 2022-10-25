@@ -1,12 +1,12 @@
-metabolite-in-compartment = [
-  {metabolite="g6p", name="D-Glucose 6-phosphate", compartment="c", balanced=false},
-  {metabolite="f6p", name="D-Fructose 6-phosphate", compartment="c", balanced=true},
-  {metabolite="fdp", name="D-Fructose 1,6-bisphosphate", compartment="c", balanced=true},
-  {metabolite="adp", name="ADP C10H12N5O10P2", compartment="c", balanced=false},
-  {metabolite="atp", name="ATP C10H12N5O13P3", compartment="c", balanced=false},
-  {metabolite="pi", name="Phosphate", compartment="c", balanced=false},
-  {metabolite="dhap", name="Dihydroxyacetone phosphate", compartment="c", balanced=true},
-  {metabolite="g3p", name="Glyceraldehyde 3-phosphate", compartment="c", balanced=true},
+metabolite= [
+  {id="g6p", name="D-Glucose 6-phosphate", inchi_key="A INCHI"},
+  {id="f6p", name="D-Fructose 6-phosphate", inchi_key="B INCHI"},
+  {id="fdp", name="D-Fructose 1,6-bisphosphate", inchi_key="C INCHI"},
+  {id="adp", name="ADP C10H12N5O10P2", inchi_key="D INCHI"},
+  {id="atp", name="ATP C10H12N5O13P3", inchi_key="E INCHI"},
+  {id="pi", name="Phosphate", inchi_key="F INCHI"},
+  {id="dhap", name="Dihydroxyacetone phosphate", inchi_key="G INCHI"},
+  {id="g3p", name="Glyceraldehyde 3-phosphate", inchi_key="H INCHI"},
 #   {metabolite="nad", name="Nicotinamide adenine dinucleotide", compartment="c", balanced=false},
 #   {metabolite="nadh", name="Nicotinamide adenine dinucleotide - reduced", compartment="c", balanced=false},
 #   {metabolite="13dpg", name="3-Phospho-D-glyceroyl phosphate", compartment="c", balanced=true},
@@ -23,14 +23,14 @@ id = "PGI"
 name = "Glucose-6-phosphate isomerase"
 enzyme = [{id = "PGI", name = "Glucose-6-phosphate isomerase"}]
 stoichiometry = {g6p_c = -1, f6p_c = 1}
-mechanism = "reversible_modular_rate_law"
+mechanism = "reversible_michaelis_menten"
 
 [[reaction]]
 id = "PFK"
 name = "Phosphofructokinase"
 enzyme = [{id = "PFK", name = "Phosphofructokinase"}]
 stoichiometry = {atp_c = -1, f6p_c = -1, adp_c = 1, fdp_c = 1}
-mechanism = "irreversible_modular_rate_law"
+mechanism = "irreversible_michaelis_menten"
 
 [[reaction]]
 id = "FBP"
@@ -38,21 +38,21 @@ name = "Fructose-bisphosphatase"
 water_stoichiometry = 1
 enzyme = [{id = "FBP", name = "Fructose-bisphosphatase"}]
 stoichiometry = {f6p_c = -1, fdp_c = 1, pi_c = -1}
-mechanism = "reversible_modular_rate_law"
+mechanism = "reversible_michaelis_menten"
 
 [[reaction]]
 id = "FBA"
 name = "Fructose-bisphosphate aldolase"
 enzyme = [{id = "FBA", name = "Fructose-bisphosphate aldolase"}]
 stoichiometry = {dhap_c = 1, fdp_c = -1, g3p_c = 1}
-mechanism = "reversible_modular_rate_law"
+mechanism = "reversible_michaelis_menten"
 
 [[reaction]]
 id = "TPI"
 name = "Triose-phosphate isomerase"
 enzyme = [{id = "TPI", name = "Triose-phosphate isomerase"}]
 stoichiometry = {dhap_c = -1, g3p_c = 1}
-mechanism = "reversible_modular_rate_law"
+mechanism = "reversible_michaelis_menten"
 
 # [[reaction]]
 # id = "GAPD"
@@ -67,6 +67,6 @@ mechanism = "reversible_modular_rate_law"
 # stoichiometry = {13dpg_c = -1, 3pg_c = 1, adp_c = -1, atp_c = 1}
 
 [[drain]]
-id = "g3p_drain"
-name = "g3p_drain"
+id = "g3pdrain"
+name = "g3pdrain"
 stoichiometry = { g3p_c = -1 }

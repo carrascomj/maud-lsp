@@ -24,9 +24,9 @@ pub fn main_loop(
     let maud_config: MaudConfig =
         toml::from_str(&read_to_string(config.root_dir.join("config.toml"))?)?;
     let kinetic_state =
-        KineticModelState::from_path(config.root_dir.join(&maud_config.kinetic_model));
+        KineticModelState::from_path(config.root_dir.join(&maud_config.kinetic_model_file));
     let kinetic_model_uri =
-        Url::from_file_path(config.root_dir.join(maud_config.kinetic_model)).unwrap();
+        Url::from_file_path(config.root_dir.join(maud_config.kinetic_model_file)).unwrap();
     for msg in &connection.receiver {
         match msg {
             Message::Request(req) => {

@@ -39,5 +39,5 @@ conc_unbalanced,,atp_c,,,,Evo04ptsHIcrrEvo01EP,5.4080032,0.186962,,
 conc_unbalanced,,g6p_c,,,,Evo04Evo01EP,2.0804108,0.188651,,
 conc_unbalanced,,adp_c,,,,Evo04Evo01EP,0.6113649,0.038811,,
 conc_unbalanced,,atp_c,,,,Evo04Evo01EP,5.4080032,0.186962,,
-drain,,,,g3p_drain,,Evo04ptsHIcrrEvo01EP,,,0.3,1.2
-drain,,,,g3p_drain,,Evo04Evo01EP,,,0.3,1.2
+drain,,,,g3pdrain,,Evo04ptsHIcrrEvo01EP,,,0.3,1.2
+drain,,,,g3pdrain,,Evo04Evo01EP,,,0.3,1.2
