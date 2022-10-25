@@ -9,7 +9,7 @@ Supports `Hover` and `GotoDefinition`.
 ## TODO
 
 - [x] Handle `MetaboliteInComparment`.
-- [ ] Handle `Reaction`.
+- [x] Handle `Reaction`.
 - [ ] Handle `Enzyme`.
 - [ ] Fail gracefully when symbol was not found.
 

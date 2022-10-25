@@ -1,8 +1,8 @@
-use std::io::Read;
-use ouroboros::self_referencing;
-use toml::Spanned;
 use crate::maud_data::KineticModel;
-use crate::metabolic::Metabolic;
+use crate::metabolic::{Entity, Metabolic};
+use ouroboros::self_referencing;
+use std::io::Read;
+use toml::Spanned;
 
 /// Both the data model and string representing the file.
 #[self_referencing]
@@ -12,7 +12,6 @@ pub struct KineticModelState {
     #[covariant]
     kinetic_model: KineticModel<'this>,
 }
-
 
 impl KineticModelState {
     pub fn from_path<P: AsRef<std::path::Path>>(path: P) -> Self {
@@ -29,17 +28,27 @@ impl KineticModelState {
 
     /// Return the absolute spanned value of the symbol in the data model.
     /// TODO: return the actual symbol to make it more useful
-    pub fn find_symbol<'a>(&'a self, symbol: &str) -> Option<&'a (impl Metabolic + 'a)> {
-        self
+    pub fn find_symbol<'a>(&'a self, symbol: &str) -> Option<Entity<'a>> {
+        let some_met = self
             .borrow_kinetic_model()
             .metabolite_in_compartments
             .iter()
             // TODO: handle this unwrap
-            .find(|&met| met.identifier() == symbol)
+            .find(|&met| met.identifier() == symbol);
+        if some_met.is_some() {
+            some_met.map(Entity::Met)
+        } else {
+            self.borrow_kinetic_model()
+                .reactions
+                .iter()
+                // TODO: handle this unwrap
+                .find(|&reac| reac.identifier() == symbol)
+                .map(Entity::Reac)
+        }
     }
 
     /// Render a symbol str.
-    pub fn find_rendered_symbol<'a>(&'a self, symbol: &str) -> String {
+    pub fn find_rendered_symbol(&self, symbol: &str) -> String {
         let metabolic_entity = self.find_symbol(symbol);
         if let Some(met) = metabolic_entity {
             met.to_string()
@@ -51,7 +60,10 @@ impl KineticModelState {
     /// Find the line where a symbol is defined (for GotoDefinition).
     pub fn find_symbol_line(&self, symbol: &str) -> Option<usize> {
         let met_metabolite = self.find_symbol(symbol)?;
-        Some(span_to_line_number(self.borrow_file_str(), met_metabolite.span()))
+        Some(span_to_line_number(
+            self.borrow_file_str(),
+            met_metabolite.span(),
+        ))
     }
 }
 
@@ -60,7 +72,7 @@ fn span_to_line_number<T>(file_string: &str, span: &Spanned<T>) -> usize {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::KineticModelState;
 
     #[test]
