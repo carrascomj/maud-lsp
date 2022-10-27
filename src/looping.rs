@@ -7,10 +7,12 @@ use std::path::Path;
 use lsp_types::{
     request::{GotoDefinition, HoverRequest},
     GotoDefinitionResponse, Hover, HoverContents, LanguageString, Location, MarkedString, Position,
-    Range, Url,
+    Range, TextDocumentIdentifier, Url,
 };
 
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response, ResponseError};
+use lsp_server::{
+    Connection, ExtractError, Message, Notification, Request, RequestId, Response, ResponseError,
+};
 
 use crate::config::Config;
 use crate::maud_data::MaudConfig;
@@ -23,10 +25,10 @@ pub fn main_loop(
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
     let maud_config: MaudConfig =
         toml::from_str(&read_to_string(config.root_dir.join("config.toml"))?)?;
-    let kinetic_state =
+    let mut kinetic_state =
         KineticModelState::from_path(config.root_dir.join(&maud_config.kinetic_model_file));
     let kinetic_model_uri =
-        Url::from_file_path(config.root_dir.join(maud_config.kinetic_model_file)).unwrap();
+        Url::from_file_path(config.root_dir.join(&maud_config.kinetic_model_file)).unwrap();
     for msg in &connection.receiver {
         match match_message(msg, &connection, &kinetic_state, &kinetic_model_uri) {
             Ok(Some(OkMsg::OkNotFound { id, msg })) => {
@@ -42,6 +44,18 @@ pub fn main_loop(
                 connection.sender.send(Message::Response(no_idea_resp))?;
             }
             Ok(Some(OkMsg::Shutdown)) => return Ok(()),
+            Ok(Some(OkMsg::DidSave(text_document))) => {
+                if Some(text_document.uri.path())
+                    == config
+                        .root_dir
+                        .join(&maud_config.kinetic_model_file)
+                        .to_str()
+                {
+                    kinetic_state = KineticModelState::from_path(
+                        config.root_dir.join(&maud_config.kinetic_model_file),
+                    )
+                }
+            }
             Err(e) => panic!("{:?}", e),
             _ => (),
         }
@@ -54,6 +68,8 @@ enum OkMsg {
     OkNotFound { id: RequestId, msg: String },
     /// Received shutdown, return Ok
     Shutdown,
+    /// Kinetic Model was saved
+    DidSave(TextDocumentIdentifier),
 }
 
 fn match_message(
@@ -188,7 +204,13 @@ fn match_message(
             Ok(None)
         }
         Message::Notification(not) => {
-            eprintln!("got notification: {:?}", not);
+            match cast_not::<lsp_types::notification::DidSaveTextDocument>(not) {
+                Ok(params) => return Ok(Some(OkMsg::DidSave(params.text_document))),
+                _ => {
+                    eprintln!("got unhandled notification");
+                }
+            }
+
             Ok(None)
         }
     }
@@ -200,6 +222,14 @@ where
     R::Params: serde::de::DeserializeOwned,
 {
     req.extract(R::METHOD)
+}
+
+fn cast_not<N>(not: Notification) -> Result<N::Params, ExtractError<Notification>>
+where
+    N: lsp_types::notification::Notification,
+    N::Params: serde::de::DeserializeOwned + Send,
+{
+    not.extract(N::METHOD)
 }
 
 fn read_line<P: AsRef<Path>>(file_path: P, line: u32) -> io::Result<String> {

@@ -4,7 +4,11 @@
 use std::error::Error;
 
 use lsp_types::OneOf;
-use lsp_types::{HoverProviderCapability, InitializeParams, ServerCapabilities};
+use lsp_types::{
+    HoverProviderCapability, InitializeParams, SaveOptions, ServerCapabilities,
+    TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
+    TextDocumentSyncSaveOptions,
+};
 
 use lsp_server::Connection;
 pub mod config;
@@ -25,9 +29,20 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     // also be implemented to use sockets or HTTP.
     let (connection, io_threads) = Connection::stdio();
 
-    // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
+    // Hover, GotoDefinition and handle saves
     let server_capabilities = serde_json::to_value(&ServerCapabilities {
         definition_provider: Some(OneOf::Left(true)),
+        text_document_sync: Some(TextDocumentSyncCapability::Options(
+            TextDocumentSyncOptions {
+                open_close: Some(false),
+                change: Some(TextDocumentSyncKind::NONE),
+                will_save: Some(false),
+                will_save_wait_until: Some(false),
+                save: Some(TextDocumentSyncSaveOptions::SaveOptions(SaveOptions {
+                    include_text: Some(false),
+                })),
+            },
+        )),
         hover_provider: Some(HoverProviderCapability::Simple(true)),
         ..Default::default()
     })
@@ -35,6 +50,7 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let initialization_params = connection.initialize(server_capabilities)?;
     let params: InitializeParams = serde_json::from_value(initialization_params).unwrap();
     let config = Config::from_init(params)?;
+    // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
     main_loop(connection, config)?;
 
     io_threads.join()?;

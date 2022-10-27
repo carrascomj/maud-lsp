@@ -5,9 +5,10 @@ use std::path::PathBuf;
 use crate::support::Project;
 
 use lsp_types::{
+    notification::DidSaveTextDocument,
     request::{GotoDefinition, HoverRequest},
-    GotoDefinitionParams, HoverParams, PartialResultParams, Position, TextDocumentPositionParams,
-    WorkDoneProgressParams,
+    DidSaveTextDocumentParams, GotoDefinitionParams, HoverParams, PartialResultParams, Position,
+    TextDocumentPositionParams, WorkDoneProgressParams,
 };
 
 #[test]
@@ -142,4 +143,17 @@ fn hovers_enzyme_in_csv() {
     let res_str = res.to_string();
     assert!(res_str.contains("E1"));
     assert!(res_str.contains("enzyme"));
+}
+
+#[test]
+fn notifications_do_not_panic() {
+    let server =
+        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
+            .server();
+    // waiting a bit for the server to initialize
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    server.notification::<DidSaveTextDocument>(DidSaveTextDocumentParams {
+        text_document: server.doc_id("ecoli_kinetic_model.toml"),
+        text: None,
+    });
 }
