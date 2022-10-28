@@ -51,9 +51,13 @@ pub fn main_loop(
                         .join(&maud_config.kinetic_model_file)
                         .to_str()
                 {
-                    kinetic_state = KineticModelState::from_path(
+                    // the model file may have been saved in an invalid state
+                    // only update the data model if it is valid
+                    if let Ok(state) = KineticModelState::try_from_path(
                         config.root_dir.join(&maud_config.kinetic_model_file),
-                    )
+                    ) {
+                        kinetic_state = state;
+                    }
                 }
             }
             Err(e) => panic!("{:?}", e),

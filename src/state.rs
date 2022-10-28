@@ -14,6 +14,7 @@ pub struct KineticModelState {
 }
 
 impl KineticModelState {
+    /// Can panic. Used first time the server reads the document
     pub fn from_path<P: AsRef<std::path::Path>>(path: P) -> Self {
         let mut file = std::fs::File::open(path).expect("Unable to open the file");
         let mut contents = String::new();
@@ -24,6 +25,29 @@ impl KineticModelState {
             kinetic_model_builder: |file_str| toml::from_str(file_str.as_str()).unwrap(),
         }
         .build()
+    }
+
+    /// Do not panic.
+    pub fn try_from_path<P: AsRef<std::path::Path>>(path: P) -> Result<Self, std::io::Error> {
+        let mut file = std::fs::File::open(path).expect("Unable to open the file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Unable to read the file");
+        KineticModelStateTryBuilder {
+            file_str: contents,
+            kinetic_model_builder: |file_str| {
+                toml::from_str(file_str.as_str())
+                    // the error is changed because of lifetime bounds of toml::from_str in
+                    // conjuction with ouroboros
+                    .map_err(|_| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Invalid kinetic model.",
+                        )
+                    })
+            },
+        }
+        .try_build()
     }
 
     /// Return the absolute spanned value of the symbol in the data model.
