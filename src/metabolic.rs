@@ -1,5 +1,6 @@
 use crate::maud_data::{Enzyme, EnzymeReaction, Metabolite, Reaction, ReactionMechanism};
 use core::fmt::Display;
+use std::collections::HashMap;
 use toml::Spanned;
 
 pub trait Metabolic: Display {
@@ -41,15 +42,43 @@ impl Display for ReactionMechanism {
     }
 }
 
+fn to_reaction_str(st: &HashMap<&str, f32>) -> String {
+    let reactants = st
+        .iter()
+        .filter(|(_k, &v)| v < 1.0e-6)
+        .map(|(k, v)| {
+            if v + 1. < -1.0e-6 {
+                format!("{} {k}", f32::abs(*v))
+            } else {
+                k.to_string()
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(" + ");
+    let products = st
+        .iter()
+        .filter(|(_k, &v)| v >= 1.0e-6)
+        .map(|(k, v)| {
+            if v - 1. > 1.0e-6 {
+                format!("{v} {k}")
+            } else {
+                k.to_string()
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(" + ");
+    format!("{reactants} <=> {products}")
+}
+
 impl Display for Reaction<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "reaction = {}\nname = {}\nstoichiometry = {:?}\nmechanism = {}",
+            "reaction = {}\nname = {}\nmechanism = {}\nstoichiometry = '{}'",
             self.id.get_ref(),
             self.name,
-            self.stoichiometry,
-            self.mechanism
+            self.mechanism,
+            to_reaction_str(&self.stoichiometry),
         )
     }
 }
