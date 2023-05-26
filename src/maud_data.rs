@@ -77,6 +77,7 @@ pub(crate) struct KineticModel<'a> {
 #[derive(Deserialize)]
 pub struct MaudConfig {
     pub kinetic_model_file: String,
+    pub priors_file: String,
 }
 
 #[cfg(test)]

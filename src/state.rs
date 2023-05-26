@@ -1,6 +1,8 @@
 use crate::maud_data::KineticModel;
 use crate::metabolic::{Entity, Metabolic, MetabolicEnzyme};
+use crate::priors::Priors;
 use ouroboros::self_referencing;
+use std::fs::File;
 use std::io::Read;
 use toml::Spanned;
 
@@ -29,7 +31,7 @@ impl KineticModelState {
 
     /// Do not panic.
     pub fn try_from_path<P: AsRef<std::path::Path>>(path: P) -> Result<Self, std::io::Error> {
-        let mut file = std::fs::File::open(path).expect("Unable to open the file");
+        let mut file = File::open(path).expect("Unable to open the file");
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .expect("Unable to read the file");
@@ -108,6 +110,42 @@ impl KineticModelState {
 
 fn span_to_line_number<T>(file_string: &str, span: &Spanned<T>) -> usize {
     file_string.get(0..span.start()).unwrap().lines().count()
+}
+
+#[self_referencing]
+pub struct PriorsState {
+    file_str: String,
+    #[borrows(file_str)]
+    pub priors: Priors,
+}
+
+impl PriorsState {
+    pub fn from_path<P: AsRef<std::path::Path>>(path: P) -> Self {
+        let mut file = File::open(path).expect("Unable to open the file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Unable to read the file");
+        PriorsStateBuilder {
+            file_str: contents,
+            priors_builder: |file_str| toml::from_str(file_str.as_str()).unwrap(),
+        }
+        .build()
+    }
+
+    pub fn try_from_path<P: AsRef<std::path::Path>>(path: P) -> Result<Self, std::io::Error> {
+        let mut file = File::open(path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        PriorsStateTryBuilder {
+            file_str: contents,
+            priors_builder: |file_str| {
+                toml::from_str(file_str.as_str()).map_err(|_| {
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid priors.")
+                })
+            },
+        }
+        .try_build()
+    }
 }
 
 #[cfg(test)]

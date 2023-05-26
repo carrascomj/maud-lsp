@@ -27,8 +27,12 @@ pub fn main_loop(
         toml::from_str(&read_to_string(config.root_dir.join("config.toml"))?)?;
     let mut kinetic_state =
         KineticModelState::from_path(config.root_dir.join(&maud_config.kinetic_model_file));
+    let mut priors_state =
+        PriorsState::from_path(config.root_dir.join(&maud_config.priors_file));
     let kinetic_model_uri =
         Url::from_file_path(config.root_dir.join(&maud_config.kinetic_model_file)).unwrap();
+    let _priors_uri =
+        Url::from_file_path(config.root_dir.join(&maud_config.priors_file)).unwrap();
     for msg in &connection.receiver {
         match match_message(msg, &connection, &kinetic_state, &kinetic_model_uri) {
             Ok(Some(OkMsg::OkNotFound { id, msg })) => {
