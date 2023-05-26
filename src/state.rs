@@ -1,6 +1,6 @@
 use crate::maud_data::{KineticModel, ReactionMechanism};
 use crate::metabolic::{Entity, Metabolic, MetabolicEnzyme};
-use crate::priors::Priors;
+use crate::priors::{Prior, Priors};
 use lsp_types::{Diagnostic, Position};
 
 use ouroboros::self_referencing;
@@ -329,6 +329,73 @@ pub fn gather_diagnostics(
                     }
                 }),
         )
+        .collect()
+}
+
+pub fn gather_diagnostics_priors(priors_state: &PriorsState) -> Vec<Diagnostic> {
+    let km_info = priors_state.borrow_priors().km.iter().map(|km| {
+        let result_line = span_to_line_number(priors_state.borrow_file_str(), km) - 1;
+        let span = km.span();
+
+        (
+            result_line,
+            span,
+            km.get_ref().incomplete(),
+            km.get_ref().inconsistent(),
+        )
+    });
+    let kcat_info = priors_state.borrow_priors().kcat.iter().map(|kcat| {
+        let result_line = span_to_line_number(priors_state.borrow_file_str(), kcat) - 1;
+        let span = kcat.span();
+        (
+            result_line,
+            span,
+            kcat.get_ref().incomplete(),
+            kcat.get_ref().inconsistent(),
+        )
+    });
+    km_info
+        .chain(kcat_info)
+        .filter(|(_, _, err, warn)| err.is_some() || warn.is_some())
+        .flat_map(|(result_line, span, err, warn)| {
+            let end = (span.1 - span.0) as u32;
+            [
+                err.map(|err| Diagnostic {
+                    range: lsp_types::Range {
+                        start: Position {
+                            line: result_line as u32,
+                            character: OFF,
+                        },
+                        end: Position {
+                            line: result_line as u32,
+                            character: end + OFF,
+                        },
+                    },
+                    severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                    code: Some(lsp_types::NumberOrString::Number(1)),
+                    message: err.to_string(),
+                    ..Default::default()
+                }),
+                warn.map(|warn| Diagnostic {
+                    range: lsp_types::Range {
+                        start: Position {
+                            line: result_line as u32,
+                            character: OFF,
+                        },
+                        end: Position {
+                            line: result_line as u32,
+                            character: end + OFF,
+                        },
+                    },
+                    severity: Some(lsp_types::DiagnosticSeverity::WARNING),
+                    code: Some(lsp_types::NumberOrString::Number(1)),
+                    message: warn.to_string(),
+                    ..Default::default()
+                }),
+            ]
+            .into_iter()
+        })
+        .flatten()
         .collect()
 }
 
