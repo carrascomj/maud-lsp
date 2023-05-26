@@ -9,6 +9,8 @@ use std::fs::File;
 use std::io::Read;
 use toml::Spanned;
 
+const OFF: u32 = 5;
+
 /// Both the data model and string representing the file.
 #[self_referencing]
 pub struct KineticModelState {
@@ -158,7 +160,6 @@ pub fn gather_diagnostics(
     let kinetic_model = kinetic_state.borrow_kinetic_model();
     let priors = priors.borrow_priors();
     // offset to apply to the diagnostic range ("id = ")
-    const OFF: u32 = 5;
     // check that all reactions have a corresponding enzyme
     kinetic_model
         .reactions
@@ -173,7 +174,7 @@ pub fn gather_diagnostics(
         .map(|reac| {
             let result_line = span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
             let span = reac.id.span();
-            let end = (span.1 - span.0) as usize;
+            let end = (span.1 - span.0) as u32;
             Diagnostic {
                 range: lsp_types::Range {
                     start: Position {
@@ -182,7 +183,7 @@ pub fn gather_diagnostics(
                     },
                     end: Position {
                         line: result_line as u32,
-                        character: end as u32 + OFF,
+                        character: end + OFF,
                     },
                 },
                 severity: Some(lsp_types::DiagnosticSeverity::ERROR),
@@ -206,7 +207,7 @@ pub fn gather_diagnostics(
                     let result_line =
                         span_to_line_number(kinetic_state.borrow_file_str(), &enz.id) - 1;
                     let span = enz.id.span();
-                    let end = (span.1 - span.0) as usize;
+                    let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
@@ -215,7 +216,7 @@ pub fn gather_diagnostics(
                             },
                             end: Position {
                                 line: result_line as u32,
-                                character: end as u32 + OFF,
+                                character: end + OFF,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::ERROR),
@@ -235,13 +236,13 @@ pub fn gather_diagnostics(
                     priors
                         .kcat
                         .iter()
-                        .all(|kc| kc.reaction != reac.id.clone().into_inner())
+                        .all(|kc| &kc.get_ref().reaction.as_str() != reac.id.get_ref())
                 })
                 .map(|reac| {
                     let result_line =
                         span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
                     let span = reac.id.span();
-                    let end = (span.1 - span.0) as usize;
+                    let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
@@ -250,7 +251,7 @@ pub fn gather_diagnostics(
                             },
                             end: Position {
                                 line: result_line as u32,
-                                character: end as u32 + OFF,
+                                character: end + OFF,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::ERROR),
@@ -273,10 +274,7 @@ pub fn gather_diagnostics(
                             .enzyme_reaction
                             .iter()
                             .find(|er| er.reaction_id == reac.id.clone().into_inner()),
-                        reac.stoichiometry
-                            .keys()
-                            .map(|x| x.split('_').next().unwrap())
-                            .collect::<HashSet<_>>(),
+                        reac.stoichiometry.keys().copied().collect::<HashSet<_>>(),
                     )
                 })
                 .filter(|(_, er, _)| er.is_some())
@@ -285,10 +283,19 @@ pub fn gather_diagnostics(
                     let defined_km = priors
                         .km
                         .iter()
-                        .filter(|km| km.enzyme == er.enzyme_id)
-                        .map(|km| km.metabolite.as_str())
+                        .filter(|km| km.get_ref().enzyme == er.enzyme_id)
+                        .map(|km| {
+                            format!("{}_{}", km.get_ref().metabolite, km.get_ref().compartment)
+                        })
                         .collect::<HashSet<_>>();
-                    let missing_km = st.difference(&defined_km).cloned().collect::<Vec<_>>();
+                    let def_km = defined_km
+                        .iter()
+                        .map(|x| x.as_str())
+                        .collect::<HashSet<_>>();
+                    let missing_km = st
+                        .difference(&def_km)
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>();
                     if missing_km.is_empty() {
                         None
                     } else {
@@ -299,7 +306,7 @@ pub fn gather_diagnostics(
                     let result_line =
                         span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
                     let span = reac.id.span();
-                    let end = (span.1 - span.0) as usize;
+                    let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
@@ -308,7 +315,7 @@ pub fn gather_diagnostics(
                             },
                             end: Position {
                                 line: result_line as u32,
-                                character: end as u32 + OFF,
+                                character: end + OFF,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::ERROR),
