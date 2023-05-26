@@ -2,8 +2,8 @@ mod config;
 mod looping;
 mod maud_data;
 mod metabolic;
-mod state;
 mod priors;
+mod state;
 mod symbol_parser;
 
 pub use config::Config;

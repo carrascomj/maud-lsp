@@ -1,7 +1,10 @@
-use crate::maud_data::KineticModel;
+use crate::maud_data::{KineticModel, ReactionMechanism};
 use crate::metabolic::{Entity, Metabolic, MetabolicEnzyme};
 use crate::priors::Priors;
+use lsp_types::{Diagnostic, Position};
+
 use ouroboros::self_referencing;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
 use toml::Spanned;
@@ -146,6 +149,180 @@ impl PriorsState {
         }
         .try_build()
     }
+}
+
+pub fn gather_diagnostics(
+    kinetic_state: &KineticModelState,
+    priors: &PriorsState,
+) -> Vec<Diagnostic> {
+    let kinetic_model = kinetic_state.borrow_kinetic_model();
+    let priors = priors.borrow_priors();
+    // offset to apply to the diagnostic range ("id = ")
+    const OFF: u32 = 5;
+    // check that all reactions have a corresponding enzyme
+    kinetic_model
+        .reactions
+        .iter()
+        .filter(|reac| !matches!(reac.mechanism, ReactionMechanism::Drain))
+        .filter(|reac| {
+            kinetic_model
+                .enzyme_reaction
+                .iter()
+                .all(|er| er.reaction_id != reac.id.clone().into_inner())
+        })
+        .map(|reac| {
+            let result_line = span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+            let span = reac.id.span();
+            let end = (span.1 - span.0) as usize;
+            Diagnostic {
+                range: lsp_types::Range {
+                    start: Position {
+                        line: result_line as u32,
+                        character: OFF,
+                    },
+                    end: Position {
+                        line: result_line as u32,
+                        character: end as u32 + OFF,
+                    },
+                },
+                severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                code: Some(lsp_types::NumberOrString::Number(0)),
+                message: "Missing enzyme for reaction.".to_string(),
+                ..Default::default()
+            }
+        })
+        .chain(
+            // check that all enzymes have a corresponding reaction
+            kinetic_model
+                .enzymes
+                .iter()
+                .filter(|reac| {
+                    kinetic_model
+                        .enzyme_reaction
+                        .iter()
+                        .all(|er| er.enzyme_id != reac.id.clone().into_inner())
+                })
+                .map(|enz: &crate::maud_data::Enzyme| {
+                    let result_line =
+                        span_to_line_number(kinetic_state.borrow_file_str(), &enz.id) - 1;
+                    let span = enz.id.span();
+                    let end = (span.1 - span.0) as usize;
+                    Diagnostic {
+                        range: lsp_types::Range {
+                            start: Position {
+                                line: result_line as u32,
+                                character: OFF,
+                            },
+                            end: Position {
+                                line: result_line as u32,
+                                character: end as u32 + OFF,
+                            },
+                        },
+                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        code: Some(lsp_types::NumberOrString::Number(0)),
+                        message: "Missing kcat for reaction.".to_string(),
+                        ..Default::default()
+                    }
+                }),
+        )
+        .chain(
+            // check that all reactions have a corresponding kcat
+            kinetic_model
+                .reactions
+                .iter()
+                .filter(|reac| !matches!(reac.mechanism, ReactionMechanism::Drain))
+                .filter(|reac| {
+                    priors
+                        .kcat
+                        .iter()
+                        .all(|kc| kc.reaction != reac.id.clone().into_inner())
+                })
+                .map(|reac| {
+                    let result_line =
+                        span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+                    let span = reac.id.span();
+                    let end = (span.1 - span.0) as usize;
+                    Diagnostic {
+                        range: lsp_types::Range {
+                            start: Position {
+                                line: result_line as u32,
+                                character: OFF,
+                            },
+                            end: Position {
+                                line: result_line as u32,
+                                character: end as u32 + OFF,
+                            },
+                        },
+                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        code: Some(lsp_types::NumberOrString::Number(0)),
+                        message: "Missing kcat for reaction!".to_string(),
+                        ..Default::default()
+                    }
+                }),
+        )
+        .chain(
+            // check that all reactions have all kms
+            kinetic_model
+                .reactions
+                .iter()
+                .filter(|reac| !matches!(reac.mechanism, ReactionMechanism::Drain))
+                .map(|reac| {
+                    (
+                        reac,
+                        kinetic_model
+                            .enzyme_reaction
+                            .iter()
+                            .find(|er| er.reaction_id == reac.id.clone().into_inner()),
+                        reac.stoichiometry
+                            .keys()
+                            .map(|x| x.split('_').next().unwrap())
+                            .collect::<HashSet<_>>(),
+                    )
+                })
+                .filter(|(_, er, _)| er.is_some())
+                .filter_map(|(reac, er, st)| {
+                    let er = er.as_ref().unwrap();
+                    let defined_km = priors
+                        .km
+                        .iter()
+                        .filter(|km| km.enzyme == er.enzyme_id)
+                        .map(|km| km.metabolite.as_str())
+                        .collect::<HashSet<_>>();
+                    let missing_km = st.difference(&defined_km).cloned().collect::<Vec<_>>();
+                    if missing_km.is_empty() {
+                        None
+                    } else {
+                        Some((reac, missing_km))
+                    }
+                })
+                .map(|(reac, missing_km)| {
+                    let result_line =
+                        span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+                    let span = reac.id.span();
+                    let end = (span.1 - span.0) as usize;
+                    Diagnostic {
+                        range: lsp_types::Range {
+                            start: Position {
+                                line: result_line as u32,
+                                character: OFF,
+                            },
+                            end: Position {
+                                line: result_line as u32,
+                                character: end as u32 + OFF,
+                            },
+                        },
+                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        code: Some(lsp_types::NumberOrString::Number(0)),
+                        message: format!(
+                            "Missing kms for reaction {}: {:?}.",
+                            reac.id.clone().into_inner(),
+                            missing_km
+                        ),
+                        ..Default::default()
+                    }
+                }),
+        )
+        .collect()
 }
 
 #[cfg(test)]

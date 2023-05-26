@@ -7,7 +7,7 @@ use std::path::Path;
 use lsp_types::{
     request::{GotoDefinition, HoverRequest},
     GotoDefinitionResponse, Hover, HoverContents, LanguageString, Location, MarkedString, Position,
-    Range, TextDocumentIdentifier, Url,
+    PublishDiagnosticsParams, Range, TextDocumentIdentifier, Url,
 };
 
 use lsp_server::{
@@ -16,7 +16,7 @@ use lsp_server::{
 
 use crate::config::Config;
 use crate::maud_data::MaudConfig;
-use crate::state::KineticModelState;
+use crate::state::{gather_diagnostics, KineticModelState, PriorsState};
 use crate::symbol_parser::extract_symbol;
 
 pub fn main_loop(
@@ -27,12 +27,10 @@ pub fn main_loop(
         toml::from_str(&read_to_string(config.root_dir.join("config.toml"))?)?;
     let mut kinetic_state =
         KineticModelState::from_path(config.root_dir.join(&maud_config.kinetic_model_file));
-    let mut priors_state =
-        PriorsState::from_path(config.root_dir.join(&maud_config.priors_file));
+    let mut priors_state = PriorsState::from_path(config.root_dir.join(&maud_config.priors_file));
     let kinetic_model_uri =
         Url::from_file_path(config.root_dir.join(&maud_config.kinetic_model_file)).unwrap();
-    let _priors_uri =
-        Url::from_file_path(config.root_dir.join(&maud_config.priors_file)).unwrap();
+    let _priors_uri = Url::from_file_path(config.root_dir.join(&maud_config.priors_file)).unwrap();
     for msg in &connection.receiver {
         match match_message(msg, &connection, &kinetic_state, &kinetic_model_uri) {
             Ok(Some(OkMsg::OkNotFound { id, msg })) => {
@@ -61,6 +59,36 @@ pub fn main_loop(
                         config.root_dir.join(&maud_config.kinetic_model_file),
                     ) {
                         kinetic_state = state;
+                        let diagnostics = gather_diagnostics(&kinetic_state, &priors_state);
+                        let diagnostics = PublishDiagnosticsParams {
+                            uri: kinetic_model_uri.clone(),
+                            diagnostics,
+                            version: None,
+                        };
+                        connection.sender.send(Message::Notification(Notification {
+                            method: "textDocument/publishDiagnostics".to_string(),
+                            params: serde_json::to_value(diagnostics).unwrap(),
+                        }))?;
+                    }
+                } else if Some(text_document.uri.path())
+                    == config.root_dir.join(&maud_config.priors_file).to_str()
+                {
+                    // the priors file may have been saved in an invalid state
+                    // only update the data model if it is valid
+                    if let Ok(state) =
+                        PriorsState::try_from_path(config.root_dir.join(&maud_config.priors_file))
+                    {
+                        priors_state = state;
+                        let diagnostics = gather_diagnostics(&kinetic_state, &priors_state);
+                        let diagnostics = PublishDiagnosticsParams {
+                            uri: kinetic_model_uri.clone(),
+                            diagnostics,
+                            version: None,
+                        };
+                        connection.sender.send(Message::Notification(Notification {
+                            method: "textDocument/publishDiagnostics".to_string(),
+                            params: serde_json::to_value(diagnostics).unwrap(),
+                        }))?;
                     }
                 }
             }
