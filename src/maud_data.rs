@@ -89,6 +89,7 @@ pub(crate) struct KineticModel<'a> {
 pub struct MaudConfig {
     pub kinetic_model_file: String,
     pub priors_file: String,
+    pub experiments_file: String,
 }
 
 #[cfg(test)]

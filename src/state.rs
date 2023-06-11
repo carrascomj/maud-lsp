@@ -1,3 +1,4 @@
+use crate::experiments::ExperimentData;
 use crate::maud_data::{KineticModel, ReactionMechanism};
 use crate::metabolic::{Entity, Metabolic, MetabolicEnzyme};
 use crate::priors::{Prior, Priors};
@@ -150,6 +151,49 @@ impl PriorsState {
             },
         }
         .try_build()
+    }
+}
+
+#[self_referencing]
+pub struct ExperimentsState {
+    file_str: String,
+    #[borrows(file_str)]
+    #[covariant]
+    experiments: ExperimentData<'this>,
+}
+
+impl ExperimentsState {
+    pub fn from_path<P: AsRef<std::path::Path>>(path: P) -> Self {
+        let mut file = File::open(path).expect("Unable to open the file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Unable to read the file");
+        ExperimentsStateBuilder {
+            file_str: contents,
+            experiments_builder: |file_str| toml::from_str(file_str.as_str()).unwrap(),
+        }
+        .build()
+    }
+
+    pub fn try_from_path<P: AsRef<std::path::Path>>(path: P) -> Result<Self, std::io::Error> {
+        let mut file = File::open(path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        ExperimentsStateTryBuilder {
+            file_str: contents,
+            experiments_builder: |file_str| {
+                toml::from_str(file_str.as_str()).map_err(|_| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Invalid Experiments file.",
+                    )
+                })
+            },
+        }
+        .try_build()
+    }
+    pub fn experiments(&self) -> Vec<String> {
+        self.borrow_experiments().experiments()
     }
 }
 

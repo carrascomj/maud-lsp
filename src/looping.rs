@@ -16,7 +16,9 @@ use lsp_server::{
 
 use crate::config::Config;
 use crate::maud_data::MaudConfig;
-use crate::state::{gather_diagnostics, gather_diagnostics_priors, KineticModelState, PriorsState};
+use crate::state::{
+    gather_diagnostics, gather_diagnostics_priors, ExperimentsState, KineticModelState, PriorsState,
+};
 use crate::symbol_parser::extract_symbol;
 
 pub fn main_loop(
@@ -28,6 +30,9 @@ pub fn main_loop(
     let mut kinetic_state =
         KineticModelState::from_path(config.root_dir.join(&maud_config.kinetic_model_file));
     let mut priors_state = PriorsState::from_path(config.root_dir.join(&maud_config.priors_file));
+    let mut experiments_state =
+        ExperimentsState::from_path(config.root_dir.join(&maud_config.experiments_file));
+    let mut experiment_ids = experiments_state.experiments();
     let kinetic_model_uri =
         Url::from_file_path(config.root_dir.join(&maud_config.kinetic_model_file)).unwrap();
     let priors_uri = Url::from_file_path(config.root_dir.join(&maud_config.priors_file)).unwrap();
@@ -100,6 +105,15 @@ pub fn main_loop(
                             method: "textDocument/publishDiagnostics".to_string(),
                             params: serde_json::to_value(diagnostics).unwrap(),
                         }))?;
+                    }
+                } else if Some(text_document.uri.path())
+                    == config.root_dir.join(&maud_config.experiments_file).to_str()
+                {
+                    if let Ok(state) = ExperimentsState::try_from_path(
+                        config.root_dir.join(&maud_config.experiments_file),
+                    ) {
+                        experiments_state = state;
+                        experiment_ids = experiments_state.experiments();
                     }
                 }
             }
