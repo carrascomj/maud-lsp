@@ -79,9 +79,10 @@ pub fn main_loop(
                         PriorsState::try_from_path(config.root_dir.join(&maud_config.priors_file))
                     {
                         priors_state = state;
-                        let diagnostics = gather_diagnostics(&kinetic_state, &priors_state);
+
+                        let diagnostics = gather_diagnostics_priors(&priors_state);
                         let diagnostics = PublishDiagnosticsParams {
-                            uri: kinetic_model_uri.clone(),
+                            uri: priors_uri.clone(),
                             diagnostics,
                             version: None,
                         };
@@ -89,9 +90,9 @@ pub fn main_loop(
                             method: "textDocument/publishDiagnostics".to_string(),
                             params: serde_json::to_value(diagnostics).unwrap(),
                         }))?;
-                        let diagnostics = gather_diagnostics_priors(&priors_state);
+                        let diagnostics = gather_diagnostics(&kinetic_state, &priors_state);
                         let diagnostics = PublishDiagnosticsParams {
-                            uri: priors_uri.clone(),
+                            uri: kinetic_model_uri.clone(),
                             diagnostics,
                             version: None,
                         };

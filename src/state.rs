@@ -332,30 +332,82 @@ pub fn gather_diagnostics(
         .collect()
 }
 
-pub fn gather_diagnostics_priors(priors_state: &PriorsState) -> Vec<Diagnostic> {
-    let km_info = priors_state.borrow_priors().km.iter().map(|km| {
-        let result_line = span_to_line_number(priors_state.borrow_file_str(), km) - 1;
-        let span = km.span();
+fn get_prior_info<'a, P: Prior>(
+    priors_state: &'a PriorsState,
+    priors: &'a [Spanned<P>],
+) -> impl Iterator<Item = (usize, (usize, usize), Option<&'a str>, Option<&'a str>)> {
+    priors.iter().map(|prior| {
+        let result_line = span_to_line_number(priors_state.borrow_file_str(), prior) - 1;
+        let span = prior.span();
+        (
+            result_line,
+            span,
+            prior.get_ref().incomplete(),
+            prior.get_ref().inconsistent(),
+        )
+    })
+}
 
-        (
-            result_line,
-            span,
-            km.get_ref().incomplete(),
-            km.get_ref().inconsistent(),
-        )
-    });
-    let kcat_info = priors_state.borrow_priors().kcat.iter().map(|kcat| {
-        let result_line = span_to_line_number(priors_state.borrow_file_str(), kcat) - 1;
-        let span = kcat.span();
-        (
-            result_line,
-            span,
-            kcat.get_ref().incomplete(),
-            kcat.get_ref().inconsistent(),
-        )
-    });
+pub fn gather_diagnostics_priors(priors_state: &PriorsState) -> Vec<Diagnostic> {
+    let km_info = get_prior_info(&priors_state, &priors_state.borrow_priors().km);
+    let kcat_info = get_prior_info(&priors_state, &priors_state.borrow_priors().kcat);
+    let enzyme_info = get_prior_info(&priors_state, &priors_state.borrow_priors().conc_enzyme);
+    let drain_info = get_prior_info(&priors_state, &priors_state.borrow_priors().drain);
+    let mut min_concentrations = std::collections::HashMap::new();
+    for conc in priors_state
+        .borrow_priors()
+        .conc_unbalanced
+        .iter()
+        .map(|x| x.get_ref())
+    {
+        if let Some(mean) = conc.mean() {
+            let entry = min_concentrations
+                .entry((&conc.metabolite, &conc.compartment))
+                .or_insert(mean);
+            *entry = f64::min(*entry, mean);
+        }
+    }
+
     km_info
         .chain(kcat_info)
+        .chain(enzyme_info)
+        .chain(drain_info)
+        .chain(priors_state.borrow_priors().km.iter().map(|km| {
+            let km_ref = km.get_ref();
+            if let (Some(prior_mean), Some(conc_mean)) = (
+                km_ref.mean(),
+                min_concentrations.get(&(&km_ref.metabolite, &km_ref.compartment)),
+            ) {
+                let result_line = span_to_line_number(priors_state.borrow_file_str(), km) - 1;
+                let span = km.span();
+                (
+                    result_line,
+                    span,
+                    None,
+                    if prior_mean > *conc_mean {
+                        Some("Km > mean of unbalanced concentration")
+                    } else {
+                        None
+                    },
+                )
+            } else {
+                (0, (0, 0), None, None)
+            }
+        }))
+        .chain([&priors_state.borrow_priors().dgf].iter().map(|m_prior| {
+            if let Some(prior) = m_prior {
+                let result_line = span_to_line_number(priors_state.borrow_file_str(), prior) - 1;
+                let span = prior.span();
+                (
+                    result_line,
+                    span,
+                    prior.get_ref().incomplete(),
+                    prior.get_ref().inconsistent(),
+                )
+            } else {
+                (0, (0, 0), None, None)
+            }
+        }))
         .filter(|(_, _, err, warn)| err.is_some() || warn.is_some())
         .flat_map(|(result_line, span, err, warn)| {
             let end = (span.1 - span.0) as u32;
