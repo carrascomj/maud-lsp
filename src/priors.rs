@@ -53,7 +53,7 @@ pub struct KmPrior {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ConcEnzyme {
-    enzyme: String,
+    pub enzyme: String,
     pub experiment: String,
     #[serde(default)]
     pub exploc: Option<f64>,

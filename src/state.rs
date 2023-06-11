@@ -268,9 +268,44 @@ pub fn gather_diagnostics(
                                 character: end + OFF,
                             },
                         },
-                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        severity: Some(lsp_types::DiagnosticSeverity::WARNING),
                         code: Some(lsp_types::NumberOrString::Number(0)),
                         message: format!("Missing prior for experiment '{experiment}'"),
+                        ..Default::default()
+                    }
+                }),
+        )
+        .chain(
+            // check that all enzymes have all concentrations defined
+            kinetic_model
+                .enzymes
+                .iter()
+                .flat_map(|x| experiments.iter().map(move |y| (x, y)))
+                .filter(|(enz, exp)| {
+                    !priors.conc_enzyme.iter().any(|conc| {
+                        &conc.get_ref().enzyme.as_str() == enz.id.get_ref()
+                            && &conc.get_ref().experiment.as_str() == exp
+                    })
+                })
+                .map(|(enz, exp)| {
+                    let result_line =
+                        span_to_line_number(kinetic_state.borrow_file_str(), &enz.id) - 1;
+                    let span = enz.id.span();
+                    let end = (span.1 - span.0) as u32;
+                    Diagnostic {
+                        range: lsp_types::Range {
+                            start: Position {
+                                line: result_line as u32,
+                                character: OFF,
+                            },
+                            end: Position {
+                                line: result_line as u32,
+                                character: end + OFF,
+                            },
+                        },
+                        severity: Some(lsp_types::DiagnosticSeverity::WARNING),
+                        code: Some(lsp_types::NumberOrString::Number(0)),
+                        message: format!("Missing concentration prior for experiment {exp}."),
                         ..Default::default()
                     }
                 }),
