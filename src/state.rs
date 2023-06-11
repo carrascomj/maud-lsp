@@ -200,15 +200,10 @@ impl ExperimentsState {
 pub fn gather_diagnostics(
     kinetic_state: &KineticModelState,
     priors: &PriorsState,
+    experiments: &[String],
 ) -> Vec<Diagnostic> {
     let kinetic_model = kinetic_state.borrow_kinetic_model();
     let priors = priors.borrow_priors();
-    // TODO: get from the experiments file once implemented
-    let experiments: HashSet<_> = priors
-        .conc_enzyme
-        .iter()
-        .map(|m| m.get_ref().experiment.as_str())
-        .collect();
     // let compartments = kinetic_model.metabolites
     // offset to apply to the diagnostic range ("id = ")
     // check that all reactions have a corresponding enzyme

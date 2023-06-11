@@ -64,7 +64,8 @@ pub fn main_loop(
                         config.root_dir.join(&maud_config.kinetic_model_file),
                     ) {
                         kinetic_state = state;
-                        let diagnostics = gather_diagnostics(&kinetic_state, &priors_state);
+                        let diagnostics =
+                            gather_diagnostics(&kinetic_state, &priors_state, &experiment_ids);
                         let diagnostics = PublishDiagnosticsParams {
                             uri: kinetic_model_uri.clone(),
                             diagnostics,
@@ -95,7 +96,8 @@ pub fn main_loop(
                             method: "textDocument/publishDiagnostics".to_string(),
                             params: serde_json::to_value(diagnostics).unwrap(),
                         }))?;
-                        let diagnostics = gather_diagnostics(&kinetic_state, &priors_state);
+                        let diagnostics =
+                            gather_diagnostics(&kinetic_state, &priors_state, &experiment_ids);
                         let diagnostics = PublishDiagnosticsParams {
                             uri: kinetic_model_uri.clone(),
                             diagnostics,
