@@ -4,9 +4,8 @@ description = """
     be run on a laptop.
 """
 kinetic_model_file = "ecoli_kinetic_model.toml"
-priors = "priors.csv"
-measurements = "experiments.csv"
-biological_config = "biological_config.toml"
+priors_file = "priors.toml"
+experiments_file = "experiments.toml"
 likelihood = true
 
 [cmdstanpy_config]

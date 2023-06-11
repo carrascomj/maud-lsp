@@ -13,6 +13,8 @@ metabolite= [
 #   {metabolite="3pg", name="3-Phospho-D-glycerate", compartment="c", balanced=false}
 ]
 
+allostery = []
+
 [[compartment]]
 id = "c"
 name = "cytosol"
@@ -21,14 +23,12 @@ volume = 1
 [[reaction]]
 id = "PGI"
 name = "Glucose-6-phosphate isomerase"
-enzyme = [{id = "PGI", name = "Glucose-6-phosphate isomerase"}]
 stoichiometry = {g6p_c = -1, f6p_c = 1}
 mechanism = "reversible_michaelis_menten"
 
 [[reaction]]
 id = "PFK"
 name = "Phosphofructokinase"
-enzyme = [{id = "PFK", name = "Phosphofructokinase"}]
 stoichiometry = {atp_c = -1, f6p_c = -1, adp_c = 1, fdp_c = 1}
 mechanism = "irreversible_michaelis_menten"
 
@@ -36,21 +36,18 @@ mechanism = "irreversible_michaelis_menten"
 id = "FBP"
 name = "Fructose-bisphosphatase"
 water_stoichiometry = 1
-enzyme = [{id = "FBP", name = "Fructose-bisphosphatase"}]
 stoichiometry = {f6p_c = -1, fdp_c = 1, pi_c = -1}
 mechanism = "reversible_michaelis_menten"
 
 [[reaction]]
 id = "FBA"
 name = "Fructose-bisphosphate aldolase"
-enzyme = [{id = "FBA", name = "Fructose-bisphosphate aldolase"}]
 stoichiometry = {dhap_c = 1, fdp_c = -1, g3p_c = 1}
 mechanism = "reversible_michaelis_menten"
 
 [[reaction]]
 id = "TPI"
 name = "Triose-phosphate isomerase"
-enzyme = [{id = "TPI", name = "Triose-phosphate isomerase"}]
 stoichiometry = {dhap_c = -1, g3p_c = 1}
 mechanism = "reversible_michaelis_menten"
 

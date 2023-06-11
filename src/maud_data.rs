@@ -81,7 +81,7 @@ pub(crate) struct KineticModel<'a> {
     pub enzymes: Vec<Enzyme<'a>>,
     #[serde(borrow)]
     pub enzyme_reaction: Vec<EnzymeReaction<'a>>,
-    #[serde(borrow)]
+    #[serde(borrow, default)]
     pub metabolite_in_compartment: Vec<MetaboliteInCompartment<'a>>,
 }
 
@@ -99,21 +99,21 @@ mod tests {
     #[test]
     fn all_comp_metabolites_are_deserialized() {
         let kinetic_model: KineticModel =
-            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
+            toml::from_str(include_str!("../tests/mock/ecoli_kinetic_model.toml")).unwrap();
         assert_eq!(kinetic_model.metabolites.len(), 8)
     }
 
     #[test]
     fn all_reactions_are_deserialized() {
         let kinetic_model: KineticModel =
-            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
+            toml::from_str(include_str!("../tests/mock/ecoli_kinetic_model.toml")).unwrap();
         assert_eq!(kinetic_model.reactions.len(), 6)
     }
 
     #[test]
     fn all_enzymes_are_deserialized() {
         let kinetic_model: KineticModel =
-            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
+            toml::from_str(include_str!("../tests/mock/ecoli_kinetic_model.toml")).unwrap();
         assert_eq!(kinetic_model.enzymes.len(), 2)
     }
 }

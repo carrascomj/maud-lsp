@@ -13,9 +13,12 @@ use lsp_types::{
 
 #[test]
 fn goestodef_of_metabolites() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
 
@@ -33,16 +36,19 @@ fn goestodef_of_metabolites() {
 
 #[test]
 fn goestodef_of_metabolite_reactant() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    assert!(false);
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
-
     let res = server.send_request::<GotoDefinition>(GotoDefinitionParams {
         text_document_position_params: TextDocumentPositionParams::new(
-            server.doc_id("ecoli_kinetic_model.toml"),
-            Position::new(39, 18),
+            server.doc_id("ecoli_kinetic_model3.toml"),
+            Position::new(38, 19),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
         partial_result_params: PartialResultParams::default(),
@@ -53,16 +59,19 @@ fn goestodef_of_metabolite_reactant() {
 
 #[test]
 fn goestodef_of_metabolites_in_csv() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
 
     let res = server.send_request::<GotoDefinition>(GotoDefinitionParams {
         text_document_position_params: TextDocumentPositionParams::new(
-            server.doc_id("priors.csv"),
-            Position::new(8, 5),
+            server.doc_id("priors.toml"),
+            Position::new(9, 19),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
         partial_result_params: PartialResultParams::default(),
@@ -73,9 +82,12 @@ fn goestodef_of_metabolites_in_csv() {
 
 #[test]
 fn hovers_metabolites() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
 
@@ -91,15 +103,19 @@ fn hovers_metabolites() {
 
 #[test]
 fn hovers_metabolite_reactant() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    assert!(false);
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
     let res = server.send_request::<HoverRequest>(HoverParams {
         text_document_position_params: TextDocumentPositionParams::new(
             server.doc_id("ecoli_kinetic_model.toml"),
-            Position::new(24, 19),
+            Position::new(27, 19),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
     });
@@ -108,14 +124,17 @@ fn hovers_metabolite_reactant() {
 
 #[test]
 fn hovers_reaction_in_csv() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
     let res = server.send_request::<HoverRequest>(HoverParams {
         text_document_position_params: TextDocumentPositionParams::new(
-            server.doc_id("priors.csv"),
+            server.doc_id("priors.toml"),
             Position::new(41, 16),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
@@ -128,15 +147,18 @@ fn hovers_reaction_in_csv() {
 
 #[test]
 fn hovers_enzyme_in_csv() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
     let res = server.send_request::<HoverRequest>(HoverParams {
         text_document_position_params: TextDocumentPositionParams::new(
-            server.doc_id("priors.csv"),
-            Position::new(1, 8),
+            server.doc_id("priors.toml"),
+            Position::new(2, 14),
         ),
         work_done_progress_params: WorkDoneProgressParams::default(),
     });
@@ -147,9 +169,12 @@ fn hovers_enzyme_in_csv() {
 
 #[test]
 fn notifications_do_not_panic() {
-    let server =
-        Project::from_kinetic_model(PathBuf::from("/home/georg/git/maud-lsp/src/examples"))
-            .server();
+    let server = Project::from_kinetic_model(
+        std::env::current_dir()
+            .unwrap()
+            .join(PathBuf::from("tests/mock")),
+    )
+    .server();
     // waiting a bit for the server to initialize
     std::thread::sleep(std::time::Duration::from_secs(1));
     server.notification::<DidSaveTextDocument>(DidSaveTextDocumentParams {

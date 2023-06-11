@@ -575,8 +575,11 @@ mod tests {
 
     #[test]
     fn finds_line_of_met_symbol() {
-        let kinetic_model_state =
-            KineticModelState::from_path("src/examples/ecoli_kinetic_model.toml");
+        let kinetic_model_state = KineticModelState::from_path(
+            std::env::current_dir()
+                .unwrap()
+                .join("tests/mock/ecoli_kinetic_model.toml"),
+        );
         assert_eq!(kinetic_model_state.find_symbol_line("g3p"), Some(9));
         assert_eq!(kinetic_model_state.find_symbol_line("g6p"), Some(2))
     }

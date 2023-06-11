@@ -12,7 +12,7 @@ pub struct Experiment<'a> {
     measurements: Vec<Measurement<'a>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct Measurement<'a> {
     target_type: &'a str,
     metabolite: Option<&'a str>,

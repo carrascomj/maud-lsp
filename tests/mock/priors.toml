@@ -1,0 +1,53 @@
+kcat = [
+  {enzyme = "E1", reaction = "PGI", exploc = 126.0, scale = 0.2},
+  {enzyme = "E1", reaction = "PFK", exploc = 110.0, scale = 0.2},
+  {enzyme = "E1", reaction = "FBP", exploc = 24.0, scale = 0.2},
+  {enzyme = "E2", reaction = "FBA", exploc = 7.0, scale = 0.2},
+  {enzyme = "E2", reaction = "TPI", exploc = 9000.0, scale = 0.2},
+]
+km = [
+  {metabolite = "g6p",     compartment = "c", enzyme = "E1",   exploc = 3.0, scale = 0.2},
+  {metabolite = "f6p",     compartment = "c", enzyme = "E1", exploc = 0.16, scale = 0.2},
+  {metabolite = "f6p",   compartment = "c", enzyme = "E1", exploc = 0.04, scale = 0.2},
+  {metabolite = "atp",     compartment = "c", enzyme = "E1", exploc = 0.06, scale = 0.2},
+  {metabolite = "fdp",   compartment = "c", enzyme = "E1",   exploc = 16.0, scale =10.2},
+  {metabolite = "f6p",  compartment = "c", enzyme = "E1",   exploc = 0.689, scale =11.5},
+  {metabolite = "pi",      compartment = "c", enzyme = "E1", exploc = 1.0, scale = 1.5},
+  {metabolite = "fdp",     compartment = "c", enzyme = "E2", exploc = 0.02, scale = 0.2}, # mod
+  {metabolite = "g3p",   compartment = "c", enzyme = "E2",   exploc = 0.03, scale =10.2},
+  {metabolite = "dhap",  compartment = "c", enzyme = "E2",   exploc = 0.13, scale =10.2}, # mod
+  {metabolite = "dhap",      compartment = "c", enzyme = "E2", exploc=0.16, scale = 1.5},
+  {metabolite = "g3p",   compartment = "c", enzyme = "E2",   exploc = 200.0, scale =10.2},
+]
+conc_unbalanced = [
+  {metabolite = "g6p", compartment = "c", experiment = "Evo04ptsHIcrrEvo01EP", exploc=2.0804108, scale= 0.188651},
+  {metabolite = "adp", compartment = "c", experiment = "Evo04ptsHIcrrEvo01EP", exploc=0.6113649, scale= 0.038811},
+  {metabolite = "atp", compartment = "c", experiment = "Evo04ptsHIcrrEvo01EP", exploc=5.4080032, scale= 0.186962},
+  {metabolite = "g6p", compartment = "c", experiment = "Evo04Evo01EP", exploc =2.0804108,  scale = 0.188651},
+  {metabolite = "adp", compartment = "c", experiment = "Evo04Evo01EP", exploc =0.6113649, scale = 0.038811},
+  {metabolite = "atp", compartment = "c", experiment = "Evo04Evo01EP", exploc =5.4080032, scale = 0.186962},
+]
+conc_enzyme = [
+  {enzyme = "E1", experiment = "Evo04ptsHIcrrEvo01EP",       exploc = 0.033875912, scale = 0.06},
+  {enzyme = "E1", experiment = "Evo04ptsHIcrrEvo01EP", exploc = 0.00592291, scale = 0.047},
+  {enzyme = "E2", experiment = "Evo04ptsHIcrrEvo01EP",   exploc = 0.0702922488972023, scale = 0.19},
+  {enzyme = "E2", experiment = "Evo04ptsHIcrrEvo01EP",       exploc = 0.020866941, scale = 0.13},
+  {enzyme = "E1", experiment = "Evo04ptsHIcrrEvo01EP", exploc = 0.018055101,  scale = 0.13},
+  {enzyme = "E1", experiment = "Evo04Evo01EP",   exploc = 0.00592291, scale = 0.047},
+  {enzyme = "E2", experiment = "Evo04Evo01EP",       exploc = 0.0702922488972023, scale = 0.19},
+  {enzyme = "E2", experiment = "Evo04Evo01EP", exploc = 0.0198,  scale = 0.1},
+  {enzyme = "E1", experiment = "Evo04Evo01EP",   exploc = 0.0185, scale = 0.05},
+]
+drain = [
+  {reaction="g3pdrain",  experiment = "Evo04ptsHIcrrEvo01EP",       pct1=0.3, pct99=1.2},
+  {reaction="g3pdrain",  experiment = "Evo04Evo01EP", pct1=0.3, pct99=1.2},
+]
+psi = [
+  {experiment = "Evo04ptsHIcrrEvo01EP", location = -0.1, scale = 0.014},
+  {experiment = "Evo04Evo01EP", location = -0.1, scale = 0.014},
+]
+
+[dgf]
+ids = ["g6p","f6p","pi","adp","atp","fdp","g3p","dhap"]
+mean_vector = [-1336.3, -1333.8, -1073.3, -1440.8, -2313.0, -2220.9, -1106.4, -1111.9]
+covariance_matrix = [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]]
