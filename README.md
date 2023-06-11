@@ -26,6 +26,12 @@ mv maud-lsp ~/.local/bin
 
 Copy-paste [`maud-ls.lua`](./assets/maud-ls.lua) in your `init.lua` config.
 
+### VSCode setup
+
+It's on the marketplace! Look it up on the extensions tab (probaby `Ctrl-Shift-X`).
+
+You should select `toml` as the file type for it to take effect.
+
 ### Building from source
 
 Install [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and run
