@@ -12,9 +12,11 @@ use lsp_types::{
 
 use lsp_server::Connection;
 pub mod config;
+mod experiments;
 mod looping;
 mod maud_data;
 mod metabolic;
+mod priors;
 mod state;
 mod symbol_parser;
 

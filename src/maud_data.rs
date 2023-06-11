@@ -61,6 +61,15 @@ pub struct EnzymeReaction<'a> {
     pub reaction_id: &'a str,
 }
 
+/// Table from enzyme to reaction
+#[derive(Deserialize)]
+pub struct MetaboliteInCompartment<'a> {
+    /// identifier, cannot contain underscores
+    pub metabolite_id: &'a str,
+    pub compartment_id: &'a str,
+    pub balanced: bool,
+}
+
 /// Contains the metabolic model structural data.
 #[derive(Deserialize)]
 pub(crate) struct KineticModel<'a> {
@@ -72,11 +81,15 @@ pub(crate) struct KineticModel<'a> {
     pub enzymes: Vec<Enzyme<'a>>,
     #[serde(borrow)]
     pub enzyme_reaction: Vec<EnzymeReaction<'a>>,
+    #[serde(borrow, default)]
+    pub metabolite_in_compartment: Vec<MetaboliteInCompartment<'a>>,
 }
 
 #[derive(Deserialize)]
 pub struct MaudConfig {
     pub kinetic_model_file: String,
+    pub priors_file: String,
+    pub experiments_file: String,
 }
 
 #[cfg(test)]
@@ -86,21 +99,21 @@ mod tests {
     #[test]
     fn all_comp_metabolites_are_deserialized() {
         let kinetic_model: KineticModel =
-            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
+            toml::from_str(include_str!("../tests/mock/ecoli_kinetic_model.toml")).unwrap();
         assert_eq!(kinetic_model.metabolites.len(), 8)
     }
 
     #[test]
     fn all_reactions_are_deserialized() {
         let kinetic_model: KineticModel =
-            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
+            toml::from_str(include_str!("../tests/mock/ecoli_kinetic_model.toml")).unwrap();
         assert_eq!(kinetic_model.reactions.len(), 6)
     }
 
     #[test]
     fn all_enzymes_are_deserialized() {
         let kinetic_model: KineticModel =
-            toml::from_str(include_str!("examples/ecoli_kinetic_model.toml")).unwrap();
+            toml::from_str(include_str!("../tests/mock/ecoli_kinetic_model.toml")).unwrap();
         assert_eq!(kinetic_model.enzymes.len(), 2)
     }
 }

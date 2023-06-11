@@ -1,4 +1,4 @@
-/// Parse a line and return the symbol under the cursor
+/// Parse a line and return the symbol under the cursor.
 pub fn extract_symbol(line: &str, column: usize) -> Option<&str> {
     let (before, after) = line.split_at(column);
     if let (Some(start), Some(end)) = (before.chars().rev().position(|c| c == '"'), after.find('"'))
@@ -8,8 +8,10 @@ pub fn extract_symbol(line: &str, column: usize) -> Option<&str> {
         before
             .chars()
             .rev()
-            .position(|c| c == ' ' || c == ',' || c == '{'),
-        after.find(|c| c == ' ' || c == ',' || c == '}'),
+            .position(|c| !c.is_alphabetic() | c.is_numeric()),
+        after
+            .chars()
+            .position(|c| !(c.is_alphabetic() | c.is_numeric())),
     ) {
         let words = line.get((column - start)..(column + end))?;
         let mut len_acc = column - start;
