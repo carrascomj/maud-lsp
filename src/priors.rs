@@ -54,7 +54,7 @@ pub struct KmPrior {
 #[derive(Debug, Deserialize, Clone)]
 pub struct ConcEnzyme {
     enzyme: String,
-    experiment: String,
+    pub experiment: String,
     #[serde(default)]
     pub exploc: Option<f64>,
     #[serde(default)]
@@ -101,8 +101,8 @@ impl KmPrior {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Drain {
-    reaction: String,
-    experiment: String,
+    pub reaction: String,
+    pub experiment: String,
     #[serde(default)]
     pub location: Option<f64>,
     #[serde(default)]

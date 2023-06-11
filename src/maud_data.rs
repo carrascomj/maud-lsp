@@ -61,6 +61,15 @@ pub struct EnzymeReaction<'a> {
     pub reaction_id: &'a str,
 }
 
+/// Table from enzyme to reaction
+#[derive(Deserialize)]
+pub struct MetaboliteInCompartment<'a> {
+    /// identifier, cannot contain underscores
+    pub metabolite_id: &'a str,
+    pub compartment_id: &'a str,
+    pub balanced: bool,
+}
+
 /// Contains the metabolic model structural data.
 #[derive(Deserialize)]
 pub(crate) struct KineticModel<'a> {
@@ -72,6 +81,8 @@ pub(crate) struct KineticModel<'a> {
     pub enzymes: Vec<Enzyme<'a>>,
     #[serde(borrow)]
     pub enzyme_reaction: Vec<EnzymeReaction<'a>>,
+    #[serde(borrow)]
+    pub metabolite_in_compartment: Vec<MetaboliteInCompartment<'a>>,
 }
 
 #[derive(Deserialize)]

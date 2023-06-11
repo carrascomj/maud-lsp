@@ -159,6 +159,13 @@ pub fn gather_diagnostics(
 ) -> Vec<Diagnostic> {
     let kinetic_model = kinetic_state.borrow_kinetic_model();
     let priors = priors.borrow_priors();
+    // TODO: get from the experiments file once implemented
+    let experiments: HashSet<_> = priors
+        .conc_enzyme
+        .iter()
+        .map(|m| m.get_ref().experiment.as_str())
+        .collect();
+    // let compartments = kinetic_model.metabolites
     // offset to apply to the diagnostic range ("id = ")
     // check that all reactions have a corresponding enzyme
     kinetic_model
@@ -192,6 +199,43 @@ pub fn gather_diagnostics(
                 ..Default::default()
             }
         })
+        .chain(
+            // check that all drains have a prior
+            kinetic_model
+                .reactions
+                .iter()
+                .filter(|reac| matches!(reac.mechanism, ReactionMechanism::Drain))
+                // cartesian product with experiments
+                .flat_map(|x| experiments.iter().map(move |y| (x, y)))
+                .filter(|(reac, exp)| {
+                    !priors.drain.iter().any(|drain| {
+                        drain.get_ref().reaction.as_str() == *reac.id.get_ref()
+                            && **exp == drain.get_ref().experiment
+                    })
+                })
+                .map(|(reac, experiment)| {
+                    let result_line =
+                        span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+                    let span = reac.id.span();
+                    let end = (span.1 - span.0) as u32;
+                    Diagnostic {
+                        range: lsp_types::Range {
+                            start: Position {
+                                line: result_line as u32,
+                                character: OFF,
+                            },
+                            end: Position {
+                                line: result_line as u32,
+                                character: end + OFF,
+                            },
+                        },
+                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        code: Some(lsp_types::NumberOrString::Number(0)),
+                        message: format!("Missing prior for experiment '{experiment}'"),
+                        ..Default::default()
+                    }
+                }),
+        )
         .chain(
             // check that all enzymes have a corresponding reaction
             kinetic_model
@@ -349,10 +393,10 @@ fn get_prior_info<'a, P: Prior>(
 }
 
 pub fn gather_diagnostics_priors(priors_state: &PriorsState) -> Vec<Diagnostic> {
-    let km_info = get_prior_info(&priors_state, &priors_state.borrow_priors().km);
-    let kcat_info = get_prior_info(&priors_state, &priors_state.borrow_priors().kcat);
-    let enzyme_info = get_prior_info(&priors_state, &priors_state.borrow_priors().conc_enzyme);
-    let drain_info = get_prior_info(&priors_state, &priors_state.borrow_priors().drain);
+    let km_info = get_prior_info(priors_state, &priors_state.borrow_priors().km);
+    let kcat_info = get_prior_info(priors_state, &priors_state.borrow_priors().kcat);
+    let enzyme_info = get_prior_info(priors_state, &priors_state.borrow_priors().conc_enzyme);
+    let drain_info = get_prior_info(priors_state, &priors_state.borrow_priors().drain);
     let mut min_concentrations = std::collections::HashMap::new();
     for conc in priors_state
         .borrow_priors()
