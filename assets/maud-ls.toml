@@ -1,0 +1,14 @@
+[[language-server.maud]]
+command = "maud-lsp"
+
+# WARN: you may already have the TOML language configured for taplo
+[[language]]
+name = "toml"
+scope = "source.toml"
+injection-regex = "toml"
+file-types = ["toml"]
+roots = ["config.toml"]
+comment-token = "#"
+# in case you had ["taplo"] here, you can simply append "maud" to the list
+language-servers = [ "maud" ]
+indent = { tab-width = 2, unit = "  " }

@@ -30,6 +30,10 @@ Copy-paste [`maud-ls.lua`](./assets/maud-ls.lua) in your `init.lua` config.
 
 It's on the marketplace! Go to the extension tab (probably `Ctrl-Shift-X`) and look for _maud_.
 
+### Helix setup
+
+Copy-paste [`maud-ls.toml`](./assets/maud-ls.toml) in your `languages.toml`.
+
 ### Building from source
 
 Install [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and run
