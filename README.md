@@ -4,7 +4,7 @@ A Language Server for [Maud](https://github.com/biosustain/Maud).
 
 Supports `Hover` and `GotoDefinition`, of **Metabolites**, **Reactions** and **Enzymes**.
 
-![Maud screenshot](assets/maud_screen.png "Maud screenshot") 
+![Maud screenshot](assets/maud_screen.png) 
 
 ## Installation
 

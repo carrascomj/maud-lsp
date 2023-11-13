@@ -170,8 +170,8 @@ fn match_message(
                             }))
                         }
                     };
-                    let result_line = match kinetic_state.find_symbol_line(symbol) {
-                        Some(line) => line - 1,
+                    let (result_line, column) = match kinetic_state.find_symbol_line_and_column(symbol) {
+                        Some((line, col)) => (line as u32 - 1, col as u32),
                         None => {
                             return Ok(Some(OkMsg::OkNotFound {
                                 id,
@@ -186,11 +186,11 @@ fn match_message(
                         uri: kinetic_model_uri.clone(),
                         range: Range {
                             start: Position {
-                                line: result_line as u32,
-                                character: 0,
+                                line: result_line,
+                                character: column,
                             },
                             end: Position {
-                                line: result_line as u32,
+                                line: result_line,
                                 character: 0,
                             },
                         },

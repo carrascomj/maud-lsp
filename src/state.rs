@@ -58,64 +58,68 @@ impl KineticModelState {
         .try_build()
     }
 
-    /// Return the absolute spanned value of the symbol in the data model.
-    /// TODO: return the actual symbol to make it more useful
-    pub fn find_symbol<'a>(&'a self, symbol: &str) -> Option<Entity<'a>> {
-        let some_met = self
-            .borrow_kinetic_model()
-            .metabolites
-            .iter()
-            // TODO: handle this unwrap
-            .find(|&met| met.identifier() == symbol);
-        if some_met.is_some() {
-            return some_met.map(Entity::Met);
+        /// Return the absolute spanned value of the symbol in the data model.
+        /// TODO: return the actual symbol to make it more useful
+        pub fn find_symbol<'a>(&'a self, symbol: &str) -> Option<Entity<'a>> {
+            let some_met = self
+                .borrow_kinetic_model()
+                .metabolites
+                .iter()
+                // TODO: handle this unwrap
+                .find(|&met| met.identifier() == symbol);
+            if some_met.is_some() {
+                return some_met.map(Entity::Met);
+            }
+
+            let some_reac = self
+                .borrow_kinetic_model()
+                .reactions
+                .iter()
+                // TODO: handle this unwrap
+                .find(|&reac| reac.identifier() == symbol)
+                .map(Entity::Reac);
+            if some_reac.is_some() {
+                return some_reac;
+            }
+            self.borrow_kinetic_model()
+                .enzymes
+                .iter()
+                // TODO: handle this unwrap
+                .find(|enz| enz.id.get_ref() == &symbol)
+                .map(|enz| {
+                    Entity::Enz(MetabolicEnzyme::from_enzyme(
+                        enz,
+                        self.borrow_kinetic_model().enzyme_reaction.as_slice(),
+                    ))
+                })
         }
 
-        let some_reac = self
-            .borrow_kinetic_model()
-            .reactions
-            .iter()
-            // TODO: handle this unwrap
-            .find(|&reac| reac.identifier() == symbol)
-            .map(Entity::Reac);
-        if some_reac.is_some() {
-            return some_reac;
+        /// Render a symbol str.
+        pub fn find_rendered_symbol(&self, symbol: &str) -> String {
+            let metabolic_entity = self.find_symbol(symbol);
+            if let Some(met) = metabolic_entity {
+                met.to_string()
+            } else {
+                String::from("")
+            }
         }
-        self.borrow_kinetic_model()
-            .enzymes
-            .iter()
-            // TODO: handle this unwrap
-            .find(|enz| enz.id.get_ref() == &symbol)
-            .map(|enz| {
-                Entity::Enz(MetabolicEnzyme::from_enzyme(
-                    enz,
-                    self.borrow_kinetic_model().enzyme_reaction.as_slice(),
-                ))
-            })
-    }
 
-    /// Render a symbol str.
-    pub fn find_rendered_symbol(&self, symbol: &str) -> String {
-        let metabolic_entity = self.find_symbol(symbol);
-        if let Some(met) = metabolic_entity {
-            met.to_string()
-        } else {
-            String::from("")
+        /// Find the line and column where a symbol is defined (for GotoDefinition).
+        pub fn find_symbol_line_and_column(&self, symbol: &str) -> Option<(usize, usize)> {
+            let met_metabolite = self.find_symbol(symbol)?;
+            Some(span_to_line_and_column(
+                self.borrow_file_str(),
+                met_metabolite.span(),
+            ))
         }
     }
 
-    /// Find the line where a symbol is defined (for GotoDefinition).
-    pub fn find_symbol_line(&self, symbol: &str) -> Option<usize> {
-        let met_metabolite = self.find_symbol(symbol)?;
-        Some(span_to_line_number(
-            self.borrow_file_str(),
-            met_metabolite.span(),
-        ))
-    }
-}
-
-fn span_to_line_number<T>(file_string: &str, span: &Spanned<T>) -> usize {
-    file_string.get(0..span.start()).unwrap().lines().count()
+/// Transform a span in absolute character position inside a file to a line and column.
+fn span_to_line_and_column<T>(file_string: &str, span: &Spanned<T>) -> (usize, usize) {
+    let line_number = file_string.get(0..span.start()).unwrap().lines().count();
+    let column_number = file_string.get(0..span.start()).unwrap().chars().rev().position(|c| c == '\n').unwrap_or(0);
+    // The column is 1-indexed in the LSP
+    (line_number, column_number + 1)
 }
 
 #[self_referencing]
@@ -218,18 +222,18 @@ pub fn gather_diagnostics(
                 .all(|er| er.reaction_id != reac.id.clone().into_inner())
         })
         .map(|reac| {
-            let result_line = span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+            let (result_line, column) = span_to_line_and_column(kinetic_state.borrow_file_str(), reac.span());
             let span = reac.id.span();
             let end = (span.1 - span.0) as u32;
             Diagnostic {
                 range: lsp_types::Range {
                     start: Position {
-                        line: result_line as u32,
-                        character: OFF,
+                        line: result_line as u32 - 1,
+                        character: column as u32,
                     },
                     end: Position {
-                        line: result_line as u32,
-                        character: end + OFF,
+                        line: result_line as u32 -1,
+                        character: (column as u32 + end),
                     },
                 },
                 severity: Some(lsp_types::DiagnosticSeverity::ERROR),
@@ -253,19 +257,18 @@ pub fn gather_diagnostics(
                     })
                 })
                 .map(|(reac, experiment)| {
-                    let result_line =
-                        span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+                    let (result_line, column) = span_to_line_and_column(kinetic_state.borrow_file_str(), reac.span());
                     let span = reac.id.span();
                     let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
-                                line: result_line as u32,
-                                character: OFF,
+                                line: result_line as u32 - 1,
+                                character: column as u32,
                             },
                             end: Position {
-                                line: result_line as u32,
-                                character: end + OFF,
+                                line: result_line as u32 - 1,
+                                character: end + column as u32,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::WARNING),
@@ -288,19 +291,19 @@ pub fn gather_diagnostics(
                     })
                 })
                 .map(|(enz, exp)| {
-                    let result_line =
-                        span_to_line_number(kinetic_state.borrow_file_str(), &enz.id) - 1;
+                    let (result_line, column) =
+                    span_to_line_and_column(kinetic_state.borrow_file_str(), &enz.id);
                     let span = enz.id.span();
                     let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
-                                line: result_line as u32,
-                                character: OFF,
+                                line: result_line as u32 - 1,
+                                character: column as u32,
                             },
                             end: Position {
-                                line: result_line as u32,
-                                character: end + OFF,
+                                line: result_line as u32 - 1,
+                                character: end + column as u32,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::WARNING),
@@ -322,19 +325,19 @@ pub fn gather_diagnostics(
                         .all(|er| er.enzyme_id != reac.id.clone().into_inner())
                 })
                 .map(|enz: &crate::maud_data::Enzyme| {
-                    let result_line =
-                        span_to_line_number(kinetic_state.borrow_file_str(), &enz.id) - 1;
+                    let (result_line, column) =
+                    span_to_line_and_column(kinetic_state.borrow_file_str(), &enz.id);
                     let span = enz.id.span();
                     let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
-                                line: result_line as u32,
-                                character: OFF,
+                                line: result_line as u32 - 1,
+                                character: column as u32,
                             },
                             end: Position {
-                                line: result_line as u32,
-                                character: end + OFF,
+                                line: result_line as u32 - 1,
+                                character: end + column as u32,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::ERROR),
@@ -357,19 +360,19 @@ pub fn gather_diagnostics(
                         .all(|kc| &kc.get_ref().reaction.as_str() != reac.id.get_ref())
                 })
                 .map(|reac| {
-                    let result_line =
-                        span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+                    let (result_line, column) =
+                    span_to_line_and_column(kinetic_state.borrow_file_str(), reac.span()) ;
                     let span = reac.id.span();
                     let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
-                                line: result_line as u32,
-                                character: OFF,
+                                line: result_line as u32 - 1,
+                                character: column as u32,
                             },
                             end: Position {
-                                line: result_line as u32,
-                                character: end + OFF,
+                                line: result_line as u32 - 1,
+                                character: end + column as u32,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::ERROR),
@@ -421,19 +424,19 @@ pub fn gather_diagnostics(
                     }
                 })
                 .map(|(reac, missing_km)| {
-                    let result_line =
-                        span_to_line_number(kinetic_state.borrow_file_str(), reac.span()) - 1;
+                    let (result_line, column) =
+                    span_to_line_and_column(kinetic_state.borrow_file_str(), reac.span());
                     let span = reac.id.span();
                     let end = (span.1 - span.0) as u32;
                     Diagnostic {
                         range: lsp_types::Range {
                             start: Position {
-                                line: result_line as u32,
-                                character: OFF,
+                                line: result_line as u32 - 1,
+                                character: column as u32,
                             },
                             end: Position {
-                                line: result_line as u32,
-                                character: end + OFF,
+                                line: result_line as u32 - 1,
+                                character: end + column as u32,
                             },
                         },
                         severity: Some(lsp_types::DiagnosticSeverity::ERROR),
@@ -453,13 +456,14 @@ pub fn gather_diagnostics(
 fn get_prior_info<'a, P: Prior>(
     priors_state: &'a PriorsState,
     priors: &'a [Spanned<P>],
-) -> impl Iterator<Item = (usize, (usize, usize), Option<&'a str>, Option<&'a str>)> {
+) -> impl Iterator<Item = (u32, (u32, u32), Option<&'a str>, Option<&'a str>)> {
     priors.iter().map(|prior| {
-        let result_line = span_to_line_number(priors_state.borrow_file_str(), prior) - 1;
+        let (result_line, column) = span_to_line_and_column(priors_state.borrow_file_str(), prior);
         let span = prior.span();
         (
-            result_line,
-            span,
+            result_line as u32 - 1,
+            (column as u32,
+            (column + (span.1 - span.0)) as u32),
             prior.get_ref().incomplete(),
             prior.get_ref().inconsistent(),
         )
@@ -496,11 +500,12 @@ pub fn gather_diagnostics_priors(priors_state: &PriorsState) -> Vec<Diagnostic> 
                 km_ref.mean(),
                 min_concentrations.get(&(&km_ref.metabolite, &km_ref.compartment)),
             ) {
-                let result_line = span_to_line_number(priors_state.borrow_file_str(), km) - 1;
+                let (result_line, column) = span_to_line_and_column(priors_state.borrow_file_str(), km);
                 let span = km.span();
                 (
-                    result_line,
-                    span,
+                    result_line as u32 - 1,
+                    (column as u32,
+                        (column + (span.1 - span.0)) as u32),
                     None,
                     if prior_mean > *conc_mean {
                         Some("Km > mean of unbalanced concentration")
@@ -514,11 +519,12 @@ pub fn gather_diagnostics_priors(priors_state: &PriorsState) -> Vec<Diagnostic> 
         }))
         .chain([&priors_state.borrow_priors().dgf].iter().map(|m_prior| {
             if let Some(prior) = m_prior {
-                let result_line = span_to_line_number(priors_state.borrow_file_str(), prior) - 1;
+                let (result_line, column) = span_to_line_and_column(priors_state.borrow_file_str(), prior);
                 let span = prior.span();
                 (
-                    result_line,
-                    span,
+                    result_line as u32 - 1,
+                    (column as u32,
+                        (column + (span.1 - span.0)) as u32),
                     prior.get_ref().incomplete(),
                     prior.get_ref().inconsistent(),
                 )
@@ -580,7 +586,7 @@ mod tests {
                 .unwrap()
                 .join("tests/mock/ecoli_kinetic_model.toml"),
         );
-        assert_eq!(kinetic_model_state.find_symbol_line("g3p"), Some(9));
-        assert_eq!(kinetic_model_state.find_symbol_line("g6p"), Some(2))
+        assert_eq!(kinetic_model_state.find_symbol_line_and_column("g6p"), Some((2, 7)));
+        assert_eq!(kinetic_model_state.find_symbol_line_and_column("g3p"), Some((9, 7)));
     }
 }

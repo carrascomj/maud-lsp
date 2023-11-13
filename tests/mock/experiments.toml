@@ -3,7 +3,10 @@ id = "Evo04ptsHIcrrEvo01EP"
 is_train = true
 is_test = false
 temperature = 310.15
-measurements = []
+measurements = [
+    {target_type = "mic", metabolite = "glc", compartment="c", value = 0.9, error_scale = 2.0},
+    {target_type = "flux", reaction = "PFK", value = -32e-6, error_scale = -3e7},
+]
 
 [[experiment]]
 id = "Evo04Evo01EP"

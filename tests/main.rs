@@ -36,7 +36,6 @@ fn goestodef_of_metabolites() {
 
 #[test]
 fn goestodef_of_metabolite_reactant() {
-    assert!(false);
     let server = Project::from_kinetic_model(
         std::env::current_dir()
             .unwrap()
@@ -103,7 +102,6 @@ fn hovers_metabolites() {
 
 #[test]
 fn hovers_metabolite_reactant() {
-    assert!(false);
     let server = Project::from_kinetic_model(
         std::env::current_dir()
             .unwrap()
